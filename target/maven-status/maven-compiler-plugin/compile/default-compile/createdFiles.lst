@@ -8,7 +8,6 @@ model\Reserva.class
 model\Lector.class
 com\mycompany\biblioteca\resources\JavaEE8Resource.class
 com\mycompany\biblioteca\JAXRSConfiguration.class
-model\Categoria.class
 dao\BajaLibroDAO.class
 dao\UsuarioDAO.class
 config\ConexionDB.class

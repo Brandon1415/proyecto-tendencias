@@ -1,3 +1,7 @@
+/*
+ * Modelo BajaLibro
+ * 
+ */
 package model;
 
 import java.sql.Date;
@@ -11,6 +15,7 @@ public class BajaLibro {
     private String descripcion;
     private Date fechaBaja;
     private Timestamp fechaRegistro;
+    private Timestamp fechaModificacion;
     
     // Campos adicionales para vistas
     private String tituloLibro;
@@ -18,11 +23,9 @@ public class BajaLibro {
     private String isbnLibro;
     private String nombreUsuario;
     
-    // Constructor vacío
     public BajaLibro() {
     }
     
-    // Constructor con parámetros principales
     public BajaLibro(int idBaja, int idLibro, int idUsuario, String motivo, String descripcion) {
         this.idBaja = idBaja;
         this.idLibro = idLibro;
@@ -31,7 +34,8 @@ public class BajaLibro {
         this.descripcion = descripcion;
     }
     
-    // Getters y Setters
+    // GETTERS Y SETTERS
+    
     public int getIdBaja() {
         return idBaja;
     }
@@ -86,6 +90,14 @@ public class BajaLibro {
     
     public void setFechaRegistro(Timestamp fechaRegistro) {
         this.fechaRegistro = fechaRegistro;
+    }
+    
+    public Timestamp getFechaModificacion() {
+        return fechaModificacion;
+    }
+    
+    public void setFechaModificacion(Timestamp fechaModificacion) {
+        this.fechaModificacion = fechaModificacion;
     }
     
     public String getTituloLibro() {

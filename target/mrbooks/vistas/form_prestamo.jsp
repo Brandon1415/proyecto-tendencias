@@ -1,9 +1,7 @@
 <%-- 
     Document   : form_prestamo
-    Created on : 09/01/2026, 15:43:08
-    Author     : ASUS
+    Formulario para registrar nuevo préstamo
 --%>
-
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <!DOCTYPE html>
@@ -25,13 +23,14 @@
             </div>
             
             <div class="table-container">
-                <form action="ControladorSistema" method="post">
+                <form action="ControladorSistema" method="post" onsubmit="return validarFormulario()">
                     <input type="hidden" name="action" value="registrarPrestamo">
                     
+                    <!-- Seleccionar Libro -->
                     <div class="form-group">
-                        <label for="libro">Libro: *</label>
+                        <label for="libro">Libro: <span class="required">*</span></label>
                         <select id="libro" name="libro" required>
-                            <option value="">Seleccione un libro</option>
+                            <option value="">-- Selecciona un libro --</option>
                             <c:forEach var="libro" items="${libros}">
                                 <c:if test="${libro.copiasDisponibles > 0}">
                                     <option value="${libro.idLibro}">
@@ -40,20 +39,25 @@
                                 </c:if>
                             </c:forEach>
                         </select>
+                        <small style="color: #7f8c8d; font-size: 0.85rem;">
+                            Solo se muestran libros con copias disponibles
+                        </small>
                     </div>
                     
+                    <!-- Seleccionar Lector -->
                     <div class="form-group">
-                        <label for="lector">Lector: *</label>
+                        <label for="lector">Lector: <span class="required">*</span></label>
                         <select id="lector" name="lector" required>
-                            <option value="">Seleccione un lector</option>
+                            <option value="">-- Selecciona un lector --</option>
                             <c:forEach var="lector" items="${lectores}">
                                 <option value="${lector.idLector}">
-                                    ${lector.nombreCompleto} - ${lector.cedula}
+                                    ${lector.nombre} ${lector.apellido} - ${lector.cedula}
                                 </option>
                             </c:forEach>
                         </select>
                     </div>
                     
+                    <!-- Información del Préstamo -->
                     <div class="alert alert-success">
                         <span>ℹ️</span>
                         <div>
@@ -64,6 +68,7 @@
                         </div>
                     </div>
                     
+                    <!-- Botones de acción -->
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary">
                             ✅ Registrar Préstamo
@@ -76,5 +81,26 @@
             </div>
         </main>
     </div>
+    
+    <script>
+        // ✅ Validación antes de enviar el formulario
+        function validarFormulario() {
+            const libro = document.getElementById('libro').value;
+            const lector = document.getElementById('lector').value;
+            
+            // Verificar que no estén vacíos
+            if (!libro || libro === '') {
+                alert('⚠️ Por favor selecciona un libro');
+                return false;
+            }
+            
+            if (!lector || lector === '') {
+                alert('⚠️ Por favor selecciona un lector');
+                return false;
+            }
+            
+            return true;
+        }
+    </script>
 </body>
 </html>

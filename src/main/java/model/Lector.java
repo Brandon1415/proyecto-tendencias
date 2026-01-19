@@ -1,7 +1,6 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Modelo Lector
+ * 
  */
 package model;
 
@@ -18,7 +17,6 @@ public class Lector {
     private String direccion;
     private String estado;
     private Timestamp fechaRegistro;
-    private Timestamp fechaModificacion;
     
     public Lector() {
     }
@@ -32,6 +30,8 @@ public class Lector {
         this.direccion = direccion;
         this.estado = "ACTIVO";
     }
+    
+    // GETTERS Y SETTERS
     
     public int getIdLector() {
         return idLector;
@@ -105,13 +105,7 @@ public class Lector {
         this.fechaRegistro = fechaRegistro;
     }
     
-    public Timestamp getFechaModificacion() {
-        return fechaModificacion;
-    }
-    
-    public void setFechaModificacion(Timestamp fechaModificacion) {
-        this.fechaModificacion = fechaModificacion;
-    }
+    // MÉTODOS ÚTILES
     
     public String getNombreCompleto() {
         return this.nombre + " " + this.apellido;

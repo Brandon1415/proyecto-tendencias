@@ -1,7 +1,11 @@
 <%-- 
-    Document   : form_reserva_edit
-    Created on : 11/01/2026, 21:46:27
-    Author     : ASUS
+    Formulario para editar una reserva existente
+    Permite editar LITERALMENTE TODO:
+    - Libro
+    - Lector
+    - Fecha de Reserva
+    - Fecha de Expiración
+    - Estado
 --%>
 
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
@@ -25,61 +29,93 @@
             </div>
             
             <div class="form-container">
-                <form action="ControladorSistema" method="post">
+                <!-- Información de la reserva actual -->
+                <div class="info-box">
+                    <h3>📋 Información de la Reserva</h3>
+                    <p><strong>Num Reserva:</strong> ${reserva.idReserva}</p>
+                    <p><strong>Fecha Modificación:</strong> ${reserva.fechaModificacion}</p>
+                </div>
+                
+                <!-- Formulario de edición -->
+                <form action="ControladorSistema" method="POST">
                     <input type="hidden" name="action" value="actualizarReserva">
                     <input type="hidden" name="id" value="${reserva.idReserva}">
                     
-                    <!-- Información de la Reserva -->
-                    <div class="form-section">
-                        <h3>📚 Información de la Reserva</h3>
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>ID Reserva:</label>
-                                <input type="text" value="${reserva.idReserva}" readonly class="readonly-input">
-                            </div>
-                            <div class="form-group">
-                                <label>Estado:</label>
-                                <input type="text" value="${reserva.estado}" readonly class="readonly-input">
-                            </div>
-                        </div>
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="libro">Libro: *</label>
-                                <select id="libro" name="libro" required>
-                                    <option value="">Seleccione un libro</option>
-                                    <c:forEach var="lib" items="${libros}">
-                                        <option value="${lib.idLibro}" ${lib.idLibro == reserva.idLibro ? 'selected' : ''}>
-                                            ${lib.titulo} - ${lib.autor}
-                                        </option>
-                                    </c:forEach>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="lector">Lector: *</label>
-                                <select id="lector" name="lector" required>
-                                    <option value="">Seleccione un lector</option>
-                                    <c:forEach var="lec" items="${lectores}">
-                                        <option value="${lec.idLector}" ${lec.idLector == reserva.idLector ? 'selected' : ''}>
-                                            ${lec.nombreCompleto} - ${lec.cedula}
-                                        </option>
-                                    </c:forEach>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Fecha de Reserva:</label>
-                                <input type="date" value="${reserva.fechaReserva}" readonly class="readonly-input">
-                            </div>
-                            <div class="form-group">
-                                <label for="fechaExpiracion">Fecha de Expiración: *</label>
-                                <input type="date" id="fechaExpiracion" name="fechaExpiracion" 
-                                       value="${reserva.fechaExpiracion}" required>
-                            </div>
-                        </div>
+                    <!-- Estado -->
+                    <div class="form-group">
+                        <label for="estado">
+                            Estado <span class="required">*</span>
+                        </label>
+                        <select id="estado" name="estado" required>
+                            <option value="PENDIENTE" 
+                                <c:if test="${reserva.estado == 'PENDIENTE'}">selected</c:if>>
+                                PENDIENTE
+                            </option>
+                            <option value="COMPLETADO" 
+                                <c:if test="${reserva.estado == 'COMPLETADO'}">selected</c:if>>
+                                COMPLETADO
+                            </option>
+                            <option value="CANCELADO" 
+                                <c:if test="${reserva.estado == 'CANCELADO'}">selected</c:if>>
+                                CANCELADO
+                            </option>
+                        </select>
+                    </div>
+                    
+                    <!-- Seleccionar Libro -->
+                    <div class="form-group">
+                        <label for="libro">
+                            Libro <span class="required">*</span>
+                        </label>
+                        <select id="libro" name="libro" required>
+                            <option value="">-- Selecciona un libro --</option>
+                            <c:forEach var="libro" items="${libros}">
+                                <option value="${libro.idLibro}" 
+                                    <c:if test="${libro.idLibro == reserva.idLibro}">selected</c:if>>
+                                    ${libro.titulo} (ISBN: ${libro.isbn})
+                                </option>
+                            </c:forEach>
+                        </select>
+                    </div>
+                    
+                    <!-- Seleccionar Lector -->
+                    <div class="form-group">
+                        <label for="lector">
+                            Lector <span class="required">*</span>
+                        </label>
+                        <select id="lector" name="lector" required>
+                            <option value="">-- Selecciona un lector --</option>
+                            <c:forEach var="lector" items="${lectores}">
+                                <option value="${lector.idLector}"
+                                    <c:if test="${lector.idLector == reserva.idLector}">selected</c:if>>
+                                    ${lector.nombre} ${lector.apellido} (${lector.cedula})
+                                </option>
+                            </c:forEach>
+                        </select>
+                    </div>
+                    
+                    <!-- Fecha de Reserva (AHORA EDITABLE) -->
+                    <div class="form-group">
+                        <label for="fechaReserva">
+                            Fecha de Reserva <span class="required">*</span>
+                        </label>
+                        <input type="date" 
+                               id="fechaReserva" 
+                               name="fechaReserva" 
+                               value="${reserva.fechaReserva}"
+                               required>
+                    </div>
+                    
+                    <!-- Fecha de Expiración -->
+                    <div class="form-group">
+                        <label for="fechaExpiracion">
+                            Fecha de Expiración <span class="required">*</span>
+                        </label>
+                        <input type="date" 
+                               id="fechaExpiracion" 
+                               name="fechaExpiracion" 
+                               value="${reserva.fechaExpiracion}"
+                               required>
                     </div>
                     
                     <!-- Botones de acción -->

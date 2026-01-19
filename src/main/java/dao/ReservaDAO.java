@@ -1,7 +1,6 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * DAO para gestionar operaciones de Reservas
+ * 
  */
 package dao;
 
@@ -23,7 +22,6 @@ public class ReservaDAO {
             
             cs.setInt(1, idLibro);
             cs.setInt(2, idLector);
-            
             cs.execute();
             return true;
         }
@@ -53,8 +51,30 @@ public class ReservaDAO {
         }
     }
     
-    public List<Map<String, Object>> listarActivas() throws SQLException {
-        String sql = "SELECT * FROM vista_reservas_activas ORDER BY fecha_expiracion";
+    /**
+     * Listar TODAS las reservas con TODAS las columnas
+     */
+    public List<Map<String, Object>> listarTodas() throws SQLException {
+        String sql = "SELECT " +
+                     "r.id_reserva, " +
+                     "r.id_libro, " +
+                     "r.id_lector, " +
+                     "r.estado, " +
+                     "r.fecha_reserva, " +
+                     "r.fecha_expiracion, " +
+                     "r.fecha_registro, " +
+                     "r.fecha_modificacion, " +
+                     "l.titulo as libro, " +
+                     "l.isbn, " +
+                     "CONCAT(lec.nombre, ' ', lec.apellido) as lector, " +
+                     "lec.cedula, " +
+                     "lec.telefono, " +
+                     "DATEDIFF(r.fecha_expiracion, CURDATE()) as dias_restantes " +
+                     "FROM reservas r " +
+                     "INNER JOIN libros l ON r.id_libro = l.id_libro " +
+                     "INNER JOIN lectores lec ON r.id_lector = lec.id_lector " +
+                     "ORDER BY r.fecha_reserva DESC";
+        
         List<Map<String, Object>> reservas = new ArrayList<>();
         
         try (Connection conn = ConexionDB.getConnection();
@@ -62,7 +82,80 @@ public class ReservaDAO {
              ResultSet rs = stmt.executeQuery(sql)) {
             
             while (rs.next()) {
-                reservas.add(mapearReservaVista(rs));
+                Map<String, Object> reserva = new HashMap<>();
+                
+                reserva.put("id_reserva", rs.getInt("id_reserva"));
+                reserva.put("id_libro", rs.getInt("id_libro"));
+                reserva.put("id_lector", rs.getInt("id_lector"));
+                reserva.put("estado", rs.getString("estado"));
+                reserva.put("fecha_reserva", rs.getDate("fecha_reserva"));
+                reserva.put("fecha_expiracion", rs.getDate("fecha_expiracion"));
+                reserva.put("fecha_registro", rs.getTimestamp("fecha_registro"));
+                reserva.put("fecha_modificacion", rs.getTimestamp("fecha_modificacion"));
+                reserva.put("libro", rs.getString("libro"));
+                reserva.put("isbn", rs.getString("isbn"));
+                reserva.put("lector", rs.getString("lector"));
+                reserva.put("cedula", rs.getString("cedula"));
+                reserva.put("telefono", rs.getString("telefono"));
+                reserva.put("dias_restantes", rs.getInt("dias_restantes"));
+                
+                reservas.add(reserva);
+            }
+        } catch (SQLException e) {
+            System.err.println("ERROR en listarTodas: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
+        
+        return reservas;
+    }
+    
+    public List<Map<String, Object>> listarActivas() throws SQLException {
+        String sql = "SELECT " +
+                     "r.id_reserva, " +
+                     "r.id_libro, " +
+                     "r.id_lector, " +
+                     "r.estado, " +
+                     "r.fecha_reserva, " +
+                     "r.fecha_expiracion, " +
+                     "r.fecha_registro, " +
+                     "r.fecha_modificacion, " +
+                     "l.titulo as libro, " +
+                     "l.isbn, " +
+                     "CONCAT(lec.nombre, ' ', lec.apellido) as lector, " +
+                     "lec.cedula, " +
+                     "lec.telefono, " +
+                     "DATEDIFF(r.fecha_expiracion, CURDATE()) as dias_restantes " +
+                     "FROM reservas r " +
+                     "INNER JOIN libros l ON r.id_libro = l.id_libro " +
+                     "INNER JOIN lectores lec ON r.id_lector = lec.id_lector " +
+                     "WHERE r.estado = 'PENDIENTE' " +
+                     "ORDER BY r.fecha_expiracion ASC";
+        
+        List<Map<String, Object>> reservas = new ArrayList<>();
+        
+        try (Connection conn = ConexionDB.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            
+            while (rs.next()) {
+                Map<String, Object> reserva = new HashMap<>();
+                reserva.put("id_reserva", rs.getInt("id_reserva"));
+                reserva.put("id_libro", rs.getInt("id_libro"));
+                reserva.put("id_lector", rs.getInt("id_lector"));
+                reserva.put("estado", rs.getString("estado"));
+                reserva.put("fecha_reserva", rs.getDate("fecha_reserva"));
+                reserva.put("fecha_expiracion", rs.getDate("fecha_expiracion"));
+                reserva.put("fecha_registro", rs.getTimestamp("fecha_registro"));
+                reserva.put("fecha_modificacion", rs.getTimestamp("fecha_modificacion"));
+                reserva.put("libro", rs.getString("libro"));
+                reserva.put("isbn", rs.getString("isbn"));
+                reserva.put("lector", rs.getString("lector"));
+                reserva.put("cedula", rs.getString("cedula"));
+                reserva.put("telefono", rs.getString("telefono"));
+                reserva.put("dias_restantes", rs.getInt("dias_restantes"));
+                
+                reservas.add(reserva);
             }
         }
         
@@ -70,7 +163,26 @@ public class ReservaDAO {
     }
     
     public List<Map<String, Object>> listarPorLector(int idLector) throws SQLException {
-        String sql = "SELECT * FROM vista_reservas_activas WHERE cedula = (SELECT cedula FROM lectores WHERE id_lector = ?)";
+        String sql = "SELECT " +
+                     "r.id_reserva, " +
+                     "r.id_libro, " +
+                     "r.id_lector, " +
+                     "r.estado, " +
+                     "r.fecha_reserva, " +
+                     "r.fecha_expiracion, " +
+                     "r.fecha_registro, " +
+                     "r.fecha_modificacion, " +
+                     "l.titulo as libro, " +
+                     "l.isbn, " +
+                     "CONCAT(lec.nombre, ' ', lec.apellido) as lector, " +
+                     "lec.cedula, " +
+                     "lec.telefono, " +
+                     "DATEDIFF(r.fecha_expiracion, CURDATE()) as dias_restantes " +
+                     "FROM reservas r " +
+                     "INNER JOIN libros l ON r.id_libro = l.id_libro " +
+                     "INNER JOIN lectores lec ON r.id_lector = lec.id_lector " +
+                     "WHERE r.id_lector = ? AND r.estado = 'PENDIENTE'";
+        
         List<Map<String, Object>> reservas = new ArrayList<>();
         
         try (Connection conn = ConexionDB.getConnection();
@@ -80,7 +192,23 @@ public class ReservaDAO {
             
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    reservas.add(mapearReservaVista(rs));
+                    Map<String, Object> reserva = new HashMap<>();
+                    reserva.put("id_reserva", rs.getInt("id_reserva"));
+                    reserva.put("id_libro", rs.getInt("id_libro"));
+                    reserva.put("id_lector", rs.getInt("id_lector"));
+                    reserva.put("estado", rs.getString("estado"));
+                    reserva.put("fecha_reserva", rs.getDate("fecha_reserva"));
+                    reserva.put("fecha_expiracion", rs.getDate("fecha_expiracion"));
+                    reserva.put("fecha_registro", rs.getTimestamp("fecha_registro"));
+                    reserva.put("fecha_modificacion", rs.getTimestamp("fecha_modificacion"));
+                    reserva.put("libro", rs.getString("libro"));
+                    reserva.put("isbn", rs.getString("isbn"));
+                    reserva.put("lector", rs.getString("lector"));
+                    reserva.put("cedula", rs.getString("cedula"));
+                    reserva.put("telefono", rs.getString("telefono"));
+                    reserva.put("dias_restantes", rs.getInt("dias_restantes"));
+                    
+                    reservas.add(reserva);
                 }
             }
         }
@@ -89,7 +217,8 @@ public class ReservaDAO {
     }
     
     public int contarActivasPorLector(int idLector) throws SQLException {
-        String sql = "SELECT COUNT(*) as total FROM reservas WHERE id_lector = ? AND estado = 'ACTIVA'";
+        String sql = "SELECT COUNT(*) as total FROM reservas " +
+                     "WHERE id_lector = ? AND estado = 'PENDIENTE'";
         int total = 0;
         
         try (Connection conn = ConexionDB.getConnection();
@@ -118,7 +247,15 @@ public class ReservaDAO {
             
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    reserva = mapearReserva(rs);
+                    reserva = new Reserva();
+                    reserva.setIdReserva(rs.getInt("id_reserva"));
+                    reserva.setIdLibro(rs.getInt("id_libro"));
+                    reserva.setIdLector(rs.getInt("id_lector"));
+                    reserva.setFechaReserva(rs.getDate("fecha_reserva"));
+                    reserva.setFechaExpiracion(rs.getDate("fecha_expiracion"));
+                    reserva.setEstado(rs.getString("estado"));
+                    reserva.setFechaRegistro(rs.getTimestamp("fecha_registro"));
+                    reserva.setFechaModificacion(rs.getTimestamp("fecha_modificacion"));
                 }
             }
         }
@@ -126,11 +263,19 @@ public class ReservaDAO {
         return reserva;
     }
     
-        /**
-     * Actualizar una reserva
+    /**
+     * ✅ ACTUALIZAR RESERVA - EDITA LITERALMENTE TODO
+     * Incluyendo fechas_registro y fecha_modificacion
      */
     public boolean actualizar(Reserva reserva) throws SQLException {
-        String sql = "UPDATE reservas SET id_libro = ?, id_lector = ?, fecha_expiracion = ? " +
+        String sql = "UPDATE reservas SET " +
+                     "id_libro = ?, " +
+                     "id_lector = ?, " +
+                     "fecha_reserva = ?, " +
+                     "fecha_expiracion = ?, " +
+                     "estado = ?, " +
+                     "fecha_registro = ?, " +
+                     "fecha_modificacion = ? " +
                      "WHERE id_reserva = ?";
 
         try (Connection conn = ConexionDB.getConnection();
@@ -138,17 +283,29 @@ public class ReservaDAO {
 
             ps.setInt(1, reserva.getIdLibro());
             ps.setInt(2, reserva.getIdLector());
-            ps.setDate(3, reserva.getFechaExpiracion());
-            ps.setInt(4, reserva.getIdReserva());
+            ps.setDate(3, reserva.getFechaReserva());
+            ps.setDate(4, reserva.getFechaExpiracion());
+            ps.setString(5, reserva.getEstado());
+            
+            if (reserva.getFechaRegistro() != null) {
+                ps.setTimestamp(6, reserva.getFechaRegistro());
+            } else {
+                ps.setNull(6, java.sql.Types.TIMESTAMP);
+            }
+            
+            if (reserva.getFechaModificacion() != null) {
+                ps.setTimestamp(7, reserva.getFechaModificacion());
+            } else {
+                ps.setNull(7, java.sql.Types.TIMESTAMP);
+            }
+            
+            ps.setInt(8, reserva.getIdReserva());
 
             int filasAfectadas = ps.executeUpdate();
             return filasAfectadas > 0;
         }
     }
 
-    /**
-     * Eliminar una reserva
-     */
     public boolean eliminar(int idReserva) throws SQLException {
         String sql = "DELETE FROM reservas WHERE id_reserva = ?";
 
@@ -159,33 +316,5 @@ public class ReservaDAO {
             int filasAfectadas = ps.executeUpdate();
             return filasAfectadas > 0;
         }
-    }
-    
-    private Reserva mapearReserva(ResultSet rs) throws SQLException {
-        Reserva reserva = new Reserva();
-        reserva.setIdReserva(rs.getInt("id_reserva"));
-        reserva.setIdLibro(rs.getInt("id_libro"));
-        reserva.setIdLector(rs.getInt("id_lector"));
-        reserva.setFechaReserva(rs.getDate("fecha_reserva"));
-        reserva.setFechaExpiracion(rs.getDate("fecha_expiracion"));
-        reserva.setEstado(rs.getString("estado"));
-        reserva.setFechaRegistro(rs.getTimestamp("fecha_registro"));
-        reserva.setFechaModificacion(rs.getTimestamp("fecha_modificacion"));
-        return reserva;
-    }
-    
-    private Map<String, Object> mapearReservaVista(ResultSet rs) throws SQLException {
-        Map<String, Object> reserva = new HashMap<>();
-        reserva.put("id_reserva", rs.getInt("id_reserva"));
-        reserva.put("libro", rs.getString("libro"));
-        reserva.put("isbn", rs.getString("isbn"));
-        reserva.put("lector", rs.getString("lector"));
-        reserva.put("cedula", rs.getString("cedula"));
-        reserva.put("telefono", rs.getString("telefono"));
-        reserva.put("fecha_reserva", rs.getDate("fecha_reserva"));
-        reserva.put("fecha_expiracion", rs.getDate("fecha_expiracion"));
-        reserva.put("dias_restantes", rs.getInt("dias_restantes"));
-        reserva.put("estado", rs.getString("estado"));
-        return reserva;
     }
 }

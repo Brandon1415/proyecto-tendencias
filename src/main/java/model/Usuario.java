@@ -1,16 +1,8 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Modelo Usuario
+ * ✅ VERSIÓN CORREGIDA - Sin campos eliminados de la BD
  */
 package model;
-
-/**
- *
- * @author ASUS
- */
-
-import java.sql.Timestamp;
 
 public class Usuario {
     
@@ -20,12 +12,7 @@ public class Usuario {
     private String email;
     private String password;
     private String rol;
-    private int intentosFallidos;
-    private boolean bloqueado;
-    private Timestamp fechaBloqueo;
     private String estado;
-    private Timestamp fechaCreacion;
-    private Timestamp fechaModificacion;
     
     public Usuario() {
     }
@@ -37,9 +24,9 @@ public class Usuario {
         this.password = password;
         this.rol = rol;
         this.estado = "ACTIVO";
-        this.intentosFallidos = 0;
-        this.bloqueado = false;
     }
+    
+    // GETTERS Y SETTERS
     
     public int getIdUsuario() {
         return idUsuario;
@@ -89,30 +76,6 @@ public class Usuario {
         this.rol = rol;
     }
     
-    public int getIntentosFallidos() {
-        return intentosFallidos;
-    }
-    
-    public void setIntentosFallidos(int intentosFallidos) {
-        this.intentosFallidos = intentosFallidos;
-    }
-    
-    public boolean isBloqueado() {
-        return bloqueado;
-    }
-    
-    public void setBloqueado(boolean bloqueado) {
-        this.bloqueado = bloqueado;
-    }
-    
-    public Timestamp getFechaBloqueo() {
-        return fechaBloqueo;
-    }
-    
-    public void setFechaBloqueo(Timestamp fechaBloqueo) {
-        this.fechaBloqueo = fechaBloqueo;
-    }
-    
     public String getEstado() {
         return estado;
     }
@@ -121,21 +84,7 @@ public class Usuario {
         this.estado = estado;
     }
     
-    public Timestamp getFechaCreacion() {
-        return fechaCreacion;
-    }
-    
-    public void setFechaCreacion(Timestamp fechaCreacion) {
-        this.fechaCreacion = fechaCreacion;
-    }
-    
-    public Timestamp getFechaModificacion() {
-        return fechaModificacion;
-    }
-    
-    public void setFechaModificacion(Timestamp fechaModificacion) {
-        this.fechaModificacion = fechaModificacion;
-    }
+    // MÉTODOS ÚTILES
     
     public String getNombreCompleto() {
         return this.nombre + " " + this.apellido;
@@ -158,7 +107,6 @@ public class Usuario {
                 ", email='" + email + '\'' +
                 ", rol='" + rol + '\'' +
                 ", estado='" + estado + '\'' +
-                ", bloqueado=" + bloqueado +
                 '}';
     }
 }

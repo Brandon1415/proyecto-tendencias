@@ -1,7 +1,6 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * DAO para gestionar el Historial de Bajas de Libros
+ * 
  */
 package dao;
 
@@ -15,11 +14,17 @@ import java.util.Map;
 
 public class BajaLibroDAO {
     
-    /**
-     * Obtener todas las bajas (para el historial)
-     */
     public List<Map<String, Object>> listarTodas() throws SQLException {
-        String sql = "SELECT * FROM vista_historial_bajas ORDER BY fecha_baja DESC";
+        String sql = "SELECT h.id_baja, h.id_libro, h.id_usuario, " +
+                     "l.titulo as libro, l.autor, l.isbn, " +
+                     "h.motivo, h.descripcion, " +
+                     "CONCAT(u.nombre, ' ', u.apellido) as registrado_por, " +
+                     "h.fecha_baja, h.fecha_registro, h.fecha_modificacion " +
+                     "FROM historial_bajas h " +
+                     "INNER JOIN libros l ON h.id_libro = l.id_libro " +
+                     "INNER JOIN usuarios u ON h.id_usuario = u.id_usuario " +
+                     "ORDER BY h.fecha_baja DESC";
+        
         List<Map<String, Object>> bajas = new ArrayList<>();
         
         try (Connection conn = ConexionDB.getConnection();
@@ -29,6 +34,8 @@ public class BajaLibroDAO {
             while (rs.next()) {
                 Map<String, Object> baja = new HashMap<>();
                 baja.put("id_baja", rs.getInt("id_baja"));
+                baja.put("id_libro", rs.getInt("id_libro"));
+                baja.put("id_usuario", rs.getInt("id_usuario"));
                 baja.put("libro", rs.getString("libro"));
                 baja.put("autor", rs.getString("autor"));
                 baja.put("isbn", rs.getString("isbn"));
@@ -37,6 +44,7 @@ public class BajaLibroDAO {
                 baja.put("registrado_por", rs.getString("registrado_por"));
                 baja.put("fecha_baja", rs.getDate("fecha_baja"));
                 baja.put("fecha_registro", rs.getTimestamp("fecha_registro"));
+                baja.put("fecha_modificacion", rs.getTimestamp("fecha_modificacion"));
                 bajas.add(baja);
             }
         }
@@ -44,16 +52,14 @@ public class BajaLibroDAO {
         return bajas;
     }
     
-    /**
-     * Obtener una baja por ID
-     */
     public BajaLibro obtenerPorId(int idBaja) throws SQLException {
-        String sql = "SELECT b.*, l.titulo, l.autor, l.isbn, " +
+        String sql = "SELECT h.*, l.titulo, l.autor, l.isbn, " +
                      "CONCAT(u.nombre, ' ', u.apellido) as nombre_usuario " +
-                     "FROM bajas_libros b " +
-                     "INNER JOIN libros l ON b.id_libro = l.id_libro " +
-                     "INNER JOIN usuarios u ON b.id_usuario = u.id_usuario " +
-                     "WHERE b.id_baja = ?";
+                     "FROM historial_bajas h " +
+                     "INNER JOIN libros l ON h.id_libro = l.id_libro " +
+                     "INNER JOIN usuarios u ON h.id_usuario = u.id_usuario " +
+                     "WHERE h.id_baja = ?";
+        
         BajaLibro baja = null;
         
         try (Connection conn = ConexionDB.getConnection();
@@ -71,11 +77,8 @@ public class BajaLibroDAO {
         return baja;
     }
     
-    /**
-     * Insertar una nueva baja
-     */
     public boolean insertar(BajaLibro baja) throws SQLException {
-        String sql = "INSERT INTO bajas_libros (id_libro, id_usuario, motivo, descripcion, fecha_baja) " +
+        String sql = "INSERT INTO historial_bajas (id_libro, id_usuario, motivo, descripcion, fecha_baja) " +
                      "VALUES (?, ?, ?, ?, ?)";
         
         try (Connection conn = ConexionDB.getConnection();
@@ -93,30 +96,50 @@ public class BajaLibroDAO {
     }
     
     /**
-     * Actualizar una baja existente
+     * ✅ ACTUALIZAR BAJA - EDITA LITERALMENTE TODO
+     * Incluyendo fecha_baja, fecha_registro y fecha_modificacion
      */
     public boolean actualizar(BajaLibro baja) throws SQLException {
-        String sql = "UPDATE bajas_libros SET motivo = ?, descripcion = ?, fecha_baja = ? " +
+        String sql = "UPDATE historial_bajas SET " +
+                     "id_libro = ?, " +
+                     "id_usuario = ?, " +
+                     "motivo = ?, " +
+                     "descripcion = ?, " +
+                     "fecha_baja = ?, " +
+                     "fecha_registro = ?, " +
+                     "fecha_modificacion = ? " +
                      "WHERE id_baja = ?";
         
         try (Connection conn = ConexionDB.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             
-            ps.setString(1, baja.getMotivo());
-            ps.setString(2, baja.getDescripcion());
-            ps.setDate(3, baja.getFechaBaja());
-            ps.setInt(4, baja.getIdBaja());
+            ps.setInt(1, baja.getIdLibro());
+            ps.setInt(2, baja.getIdUsuario());
+            ps.setString(3, baja.getMotivo());
+            ps.setString(4, baja.getDescripcion());
+            ps.setDate(5, baja.getFechaBaja());
+            
+            if (baja.getFechaRegistro() != null) {
+                ps.setTimestamp(6, baja.getFechaRegistro());
+            } else {
+                ps.setNull(6, java.sql.Types.TIMESTAMP);
+            }
+            
+            if (baja.getFechaModificacion() != null) {
+                ps.setTimestamp(7, baja.getFechaModificacion());
+            } else {
+                ps.setNull(7, java.sql.Types.TIMESTAMP);
+            }
+            
+            ps.setInt(8, baja.getIdBaja());
             
             int filasAfectadas = ps.executeUpdate();
             return filasAfectadas > 0;
         }
     }
     
-    /**
-     * Eliminar una baja
-     */
     public boolean eliminar(int idBaja) throws SQLException {
-        String sql = "DELETE FROM bajas_libros WHERE id_baja = ?";
+        String sql = "DELETE FROM historial_bajas WHERE id_baja = ?";
         
         try (Connection conn = ConexionDB.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -127,11 +150,8 @@ public class BajaLibroDAO {
         }
     }
     
-    /**
-     * Contar total de bajas
-     */
     public int contarTotal() throws SQLException {
-        String sql = "SELECT COUNT(*) as total FROM bajas_libros";
+        String sql = "SELECT COUNT(*) as total FROM historial_bajas";
         int total = 0;
         
         try (Connection conn = ConexionDB.getConnection();
@@ -146,11 +166,8 @@ public class BajaLibroDAO {
         return total;
     }
     
-    /**
-     * Obtener bajas por libro
-     */
     public List<BajaLibro> obtenerPorLibro(int idLibro) throws SQLException {
-        String sql = "SELECT * FROM bajas_libros WHERE id_libro = ? ORDER BY fecha_baja DESC";
+        String sql = "SELECT * FROM historial_bajas WHERE id_libro = ? ORDER BY fecha_baja DESC";
         List<BajaLibro> bajas = new ArrayList<>();
         
         try (Connection conn = ConexionDB.getConnection();
@@ -168,11 +185,9 @@ public class BajaLibroDAO {
         return bajas;
     }
     
-    /**
-     * Mapear ResultSet a objeto BajaLibro (solo campos de tabla)
-     */
     private BajaLibro mapearBaja(ResultSet rs) throws SQLException {
         BajaLibro baja = new BajaLibro();
+        
         baja.setIdBaja(rs.getInt("id_baja"));
         baja.setIdLibro(rs.getInt("id_libro"));
         baja.setIdUsuario(rs.getInt("id_usuario"));
@@ -180,18 +195,19 @@ public class BajaLibroDAO {
         baja.setDescripcion(rs.getString("descripcion"));
         baja.setFechaBaja(rs.getDate("fecha_baja"));
         baja.setFechaRegistro(rs.getTimestamp("fecha_registro"));
+        baja.setFechaModificacion(rs.getTimestamp("fecha_modificacion"));
+        
         return baja;
     }
     
-    /**
-     * Mapear ResultSet a objeto BajaLibro completo (con JOIN)
-     */
     private BajaLibro mapearBajaCompleta(ResultSet rs) throws SQLException {
         BajaLibro baja = mapearBaja(rs);
+        
         baja.setTituloLibro(rs.getString("titulo"));
         baja.setAutorLibro(rs.getString("autor"));
         baja.setIsbnLibro(rs.getString("isbn"));
         baja.setNombreUsuario(rs.getString("nombre_usuario"));
+        
         return baja;
     }
 }

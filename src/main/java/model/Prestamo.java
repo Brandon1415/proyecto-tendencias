@@ -1,7 +1,6 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Modelo Prestamo
+ * 
  */
 package model;
 
@@ -25,6 +24,7 @@ public class Prestamo {
     private String estado;
     private String observaciones;
     private Timestamp fechaRegistro;
+    private Timestamp fechaModificacion;
     
     public Prestamo() {
     }
@@ -35,6 +35,8 @@ public class Prestamo {
         this.idUsuario = idUsuario;
         this.estado = "ACTIVO";
     }
+    
+    // GETTERS Y SETTERS
     
     public int getIdPrestamo() {
         return idPrestamo;
@@ -155,6 +157,16 @@ public class Prestamo {
     public void setFechaRegistro(Timestamp fechaRegistro) {
         this.fechaRegistro = fechaRegistro;
     }
+    
+    public Timestamp getFechaModificacion() {
+        return fechaModificacion;
+    }
+    
+    public void setFechaModificacion(Timestamp fechaModificacion) {
+        this.fechaModificacion = fechaModificacion;
+    }
+    
+    // MÉTODOS ÚTILES
     
     public boolean estaActivo() {
         return "ACTIVO".equalsIgnoreCase(this.estado);

@@ -1,7 +1,6 @@
 <%-- 
     Document   : libros
-    Created on : 09/01/2026, 13:06:07
-    Author     : ASUS
+    ✅ ACTUALIZADO: Muestra categoria como VARCHAR (no nombreCategoria)
 --%>
 
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
@@ -63,9 +62,12 @@
                             <th>Autor</th>
                             <th>ISBN</th>
                             <th>Categoría</th>
+                            <th>Editorial</th>
                             <th>Año</th>
                             <th>Total</th>
                             <th>Disponibles</th>
+                            <th>Activo</th>
+                            <th>Fecha Modificación</th>
                             <th>Estado</th>
                             <th>Acciones</th>
                         </tr>
@@ -77,7 +79,10 @@
                                 <td><strong>${libro.titulo}</strong></td>
                                 <td>${libro.autor}</td>
                                 <td>${libro.isbn}</td>
-                                <td>${libro.nombreCategoria}</td>
+                                <td>
+                                    <span class="badge badge-info">${libro.categoria}</span>
+                                </td>
+                                <td>${libro.editorial}</td>
                                 <td>${libro.anioPublicacion}</td>
                                 <td>${libro.copiasTotales}</td>
                                 <td>
@@ -86,19 +91,32 @@
                                     </span>
                                 </td>
                                 <td>
+                                    <span class="badge ${libro.activo ? 'badge-success' : 'badge-danger'}">
+                                        ${libro.activo ? 'SÍ' : 'NO'}
+                                    </span>
+                                </td>
+                                <td>${libro.fechaModificacion}</td>
+                                <td>
                                     <span class="badge ${libro.estadoLibro == 'DISPONIBLE' ? 'badge-success' : 
                                                          libro.estadoLibro == 'PRESTADO' ? 'badge-warning' : 'badge-danger'}">
                                         ${libro.estadoLibro}
                                     </span>
                                 </td>
                                 <td class="actions">
+                                    <!-- Botón Editar -->
                                     <a href="ControladorSistema?action=editarLibro&id=${libro.idLibro}" 
                                        class="btn-icon btn-edit" title="Editar">✏️</a>
-                                    <a href="#" class="btn-icon btn-warning" title="Dar Baja"
-                                       onclick="darBajaLibro(${libro.idLibro}); return false;">❌</a>
+                                    
+                                    <!-- Botón Dar Baja (solo si está activo) -->
+                                    <c:if test="${libro.activo}">
+                                        <a href="#" class="btn-icon btn-warning" title="Dar Baja"
+                                           onclick="darBajaLibro(${libro.idLibro}); return false;">❌</a>
+                                    </c:if>
+                                    
+                                    <!-- Botón Eliminar Permanente -->
                                     <a href="ControladorSistema?action=eliminarLibro&id=${libro.idLibro}" 
                                        class="btn-icon btn-delete" title="Eliminar Permanente"
-                                       onclick="return confirm('⚠️ ¿Estás seguro de ELIMINAR este libro PERMANENTEMENTE?\n\nEsta acción NO se puede deshacer y se perderá TODO el historial.\n\nLibro: ${libro.titulo}\nISBN: ${libro.isbn}\n\n¿Prefieres dar de BAJA en lugar de eliminar?')">🗑️</a>
+                                       onclick="return confirm('⚠️ ¿Estás seguro de ELIMINAR este libro PERMANENTEMENTE?\n\nEsta acción NO se puede deshacer.\n\nLibro: ${libro.titulo}\nISBN: ${libro.isbn}')">🗑️</a>
                                 </td>
                             </tr>
                         </c:forEach>

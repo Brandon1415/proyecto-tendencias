@@ -1,13 +1,11 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * DAO para gestionar operaciones de Libros
+ * ✅ ACTUALIZADO: Sin tabla categorias, categoria es VARCHAR en libros
  */
 package dao;
 
 import config.ConexionDB;
 import model.Libro;
-import model.Categoria;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,8 +14,11 @@ import java.util.Map;
 
 public class LibroDAO {
     
+    /**
+     * ✅ Listar todos los libros activos
+     */
     public List<Libro> listarTodos() throws SQLException {
-        String sql = "SELECT * FROM vista_libros_estado WHERE estado_libro != 'BAJA' ORDER BY titulo";
+        String sql = "SELECT * FROM libros WHERE activo = 1 ORDER BY titulo";
         List<Libro> libros = new ArrayList<>();
         
         try (Connection conn = ConexionDB.getConnection();
@@ -25,68 +26,118 @@ public class LibroDAO {
              ResultSet rs = stmt.executeQuery(sql)) {
             
             while (rs.next()) {
-                libros.add(mapearLibroVista(rs));
+                libros.add(mapearLibro(rs));
             }
         }
         
         return libros;
     }
     
+    /**
+     * Insertar un nuevo libro en la BD
+     */
     public boolean insertar(Libro libro) throws SQLException {
-        String sql = "{CALL sp_insertar_libro(?, ?, ?, ?, ?, ?, ?)}";
+        String sql = "INSERT INTO libros (titulo, autor, isbn, categoria, editorial, anio_publicacion, copias_totales, copias_disponibles, activo) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)";
         
         try (Connection conn = ConexionDB.getConnection();
-             CallableStatement cs = conn.prepareCall(sql)) {
+             PreparedStatement ps = conn.prepareStatement(sql)) {
             
-            cs.setString(1, libro.getTitulo());
-            cs.setString(2, libro.getAutor());
-            cs.setString(3, libro.getIsbn());
-            cs.setInt(4, libro.getIdCategoria());
-            cs.setString(5, libro.getEditorial());
-            cs.setInt(6, libro.getAnioPublicacion());
-            cs.setInt(7, libro.getCopiasTotales());
+            ps.setString(1, libro.getTitulo());
+            ps.setString(2, libro.getAutor());
+            ps.setString(3, libro.getIsbn());
+            ps.setString(4, libro.getCategoria());
+            ps.setString(5, libro.getEditorial());
+            ps.setInt(6, libro.getAnioPublicacion());
+            ps.setInt(7, libro.getCopiasTotales());
+            ps.setInt(8, libro.getCopiasTotales());
             
-            cs.execute();
-            return true;
+            int filasAfectadas = ps.executeUpdate();
+            return filasAfectadas > 0;
         }
     }
     
+    /**
+     * Actualizar datos de un libro existente
+     */
     public boolean actualizar(Libro libro) throws SQLException {
-        String sql = "{CALL sp_actualizar_libro(?, ?, ?, ?, ?, ?, ?, ?)}";
-        
+        String sql = "UPDATE libros SET titulo = ?, autor = ?, isbn = ?, categoria = ?, " +
+                     "editorial = ?, anio_publicacion = ?, copias_totales = ?, copias_disponibles = ?, " +
+                     "activo = ?, fecha_modificacion = NOW() " +
+                     "WHERE id_libro = ?";
+
         try (Connection conn = ConexionDB.getConnection();
-             CallableStatement cs = conn.prepareCall(sql)) {
-            
-            cs.setInt(1, libro.getIdLibro());
-            cs.setString(2, libro.getTitulo());
-            cs.setString(3, libro.getAutor());
-            cs.setString(4, libro.getIsbn());
-            cs.setInt(5, libro.getIdCategoria());
-            cs.setString(6, libro.getEditorial());
-            cs.setInt(7, libro.getAnioPublicacion());
-            cs.setInt(8, libro.getCopiasTotales());
-            
-            cs.execute();
-            return true;
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            Libro libroActual = obtenerPorId(libro.getIdLibro());
+
+            if (libroActual == null) {
+                throw new SQLException("Libro no encontrado");
+            }
+
+            int diferencia = libro.getCopiasTotales() - libroActual.getCopiasTotales();
+            int copiasDisponiblesNuevas = libroActual.getCopiasDisponibles() + diferencia;
+
+            if (copiasDisponiblesNuevas < 0) {
+                copiasDisponiblesNuevas = 0;
+            }
+
+            ps.setString(1, libro.getTitulo());
+            ps.setString(2, libro.getAutor());
+            ps.setString(3, libro.getIsbn());
+            ps.setString(4, libro.getCategoria());
+            ps.setString(5, libro.getEditorial());
+            ps.setInt(6, libro.getAnioPublicacion());
+            ps.setInt(7, libro.getCopiasTotales());
+            ps.setInt(8, copiasDisponiblesNuevas);
+            ps.setBoolean(9, libro.isActivo());
+            ps.setInt(10, libro.getIdLibro());
+
+            int filasAfectados = ps.executeUpdate();
+            return filasAfectados > 0;
         }
     }
     
+    /**
+     * Dar de baja un libro (desactivarlo) y registrar el motivo
+     */
     public boolean registrarBaja(int idLibro, int idUsuario, String motivo, String descripcion) throws SQLException {
-        String sql = "{CALL sp_registrar_baja_libro(?, ?, ?, ?)}";
+        String sql = "INSERT INTO historial_bajas (id_libro, id_usuario, fecha_baja, motivo, descripcion) " +
+                     "VALUES (?, ?, CURDATE(), ?, ?)";
         
         try (Connection conn = ConexionDB.getConnection();
-             CallableStatement cs = conn.prepareCall(sql)) {
+             PreparedStatement ps = conn.prepareStatement(sql)) {
             
-            cs.setInt(1, idLibro);
-            cs.setInt(2, idUsuario);
-            cs.setString(3, motivo);
-            cs.setString(4, descripcion);
+            conn.setAutoCommit(false);
             
-            cs.execute();
-            return true;
+            try {
+                ps.setInt(1, idLibro);
+                ps.setInt(2, idUsuario);
+                ps.setString(3, motivo);
+                ps.setString(4, descripcion);
+                
+                ps.executeUpdate();
+                
+                String sqlDesactivar = "UPDATE libros SET activo = 0, fecha_modificacion = NOW() WHERE id_libro = ?";
+                try (PreparedStatement ps2 = conn.prepareStatement(sqlDesactivar)) {
+                    ps2.setInt(1, idLibro);
+                    ps2.executeUpdate();
+                }
+                
+                conn.commit();
+                return true;
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
         }
     }
     
+    /**
+     * Obtener un libro específico por su ID
+     */
     public Libro obtenerPorId(int idLibro) throws SQLException {
         String sql = "SELECT * FROM libros WHERE id_libro = ?";
         Libro libro = null;
@@ -106,6 +157,9 @@ public class LibroDAO {
         return libro;
     }
     
+    /**
+     * Obtener un libro por su ISBN
+     */
     public Libro obtenerPorIsbn(String isbn) throws SQLException {
         String sql = "SELECT * FROM libros WHERE isbn = ?";
         Libro libro = null;
@@ -125,11 +179,16 @@ public class LibroDAO {
         return libro;
     }
     
+    /**
+     * Buscar libros por criterio (título, autor, categoría o ISBN)
+     */
     public List<Libro> buscar(String criterio) throws SQLException {
-        String sql = "SELECT * FROM vista_libros_estado WHERE estado_libro != 'BAJA' AND " +
-                     "(titulo LIKE ? OR autor LIKE ? OR isbn LIKE ?) " +
+        String sql = "SELECT * FROM libros " +
+                     "WHERE activo = 1 AND " +
+                     "(titulo LIKE ? OR autor LIKE ? OR categoria LIKE ? OR isbn LIKE ?) " +
                      "ORDER BY titulo";
         List<Libro> libros = new ArrayList<>();
+        
         String busqueda = "%" + criterio + "%";
         
         try (Connection conn = ConexionDB.getConnection();
@@ -138,25 +197,7 @@ public class LibroDAO {
             ps.setString(1, busqueda);
             ps.setString(2, busqueda);
             ps.setString(3, busqueda);
-            
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    libros.add(mapearLibroVista(rs));
-                }
-            }
-        }
-        
-        return libros;
-    }
-    
-    public List<Libro> listarPorCategoria(int idCategoria) throws SQLException {
-        String sql = "SELECT * FROM libros WHERE id_categoria = ? AND activo = 1 ORDER BY titulo";
-        List<Libro> libros = new ArrayList<>();
-        
-        try (Connection conn = ConexionDB.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            
-            ps.setInt(1, idCategoria);
+            ps.setString(4, busqueda);
             
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -168,6 +209,33 @@ public class LibroDAO {
         return libros;
     }
     
+    /**
+     * Listar libros de una categoría específica
+     */
+    public List<Libro> listarPorCategoria(String categoria) throws SQLException {
+        String sql = "SELECT * FROM libros " +
+                     "WHERE categoria = ? AND activo = 1 " +
+                     "ORDER BY titulo";
+        List<Libro> libros = new ArrayList<>();
+        
+        try (Connection conn = ConexionDB.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            
+            ps.setString(1, categoria);
+            
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    libros.add(mapearLibro(rs));
+                }
+            }
+        }
+        
+        return libros;
+    }
+    
+    /**
+     * Obtener los libros más prestados
+     */
     public List<Map<String, Object>> obtenerMasPrestados(int limite) throws SQLException {
         String sql = "SELECT * FROM vista_libros_mas_prestados LIMIT ?";
         List<Map<String, Object>> resultado = new ArrayList<>();
@@ -186,6 +254,7 @@ public class LibroDAO {
                     libro.put("isbn", rs.getString("isbn"));
                     libro.put("categoria", rs.getString("categoria"));
                     libro.put("total_prestamos", rs.getInt("total_prestamos"));
+                    libro.put("prestamos_completados", rs.getInt("prestamos_completados"));
                     libro.put("copias_totales", rs.getInt("copias_totales"));
                     libro.put("copias_disponibles", rs.getInt("copias_disponibles"));
                     resultado.add(libro);
@@ -195,54 +264,10 @@ public class LibroDAO {
         
         return resultado;
     }
-    
-    public List<Categoria> listarCategorias() throws SQLException {
-        String sql = "SELECT * FROM categorias WHERE estado = 'ACTIVO' ORDER BY nombre";
-        List<Categoria> categorias = new ArrayList<>();
-        
-        try (Connection conn = ConexionDB.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            
-            while (rs.next()) {
-                Categoria categoria = new Categoria();
-                categoria.setIdCategoria(rs.getInt("id_categoria"));
-                categoria.setNombre(rs.getString("nombre"));
-                categoria.setDescripcion(rs.getString("descripcion"));
-                categoria.setEstado(rs.getString("estado"));
-                categoria.setFechaCreacion(rs.getTimestamp("fecha_creacion"));
-                categorias.add(categoria);
-            }
-        }
-        
-        return categorias;
-    }
-    
-    public List<Map<String, Object>> obtenerHistorialBajas() throws SQLException {
-        String sql = "SELECT * FROM vista_historial_bajas";
-        List<Map<String, Object>> bajas = new ArrayList<>();
-        
-        try (Connection conn = ConexionDB.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            
-            while (rs.next()) {
-                Map<String, Object> baja = new HashMap<>();
-                baja.put("id_baja", rs.getInt("id_baja"));
-                baja.put("libro", rs.getString("libro"));
-                baja.put("autor", rs.getString("autor"));
-                baja.put("isbn", rs.getString("isbn"));
-                baja.put("motivo", rs.getString("motivo"));
-                baja.put("descripcion", rs.getString("descripcion"));
-                baja.put("registrado_por", rs.getString("registrado_por"));
-                baja.put("fecha_baja", rs.getDate("fecha_baja"));
-                bajas.add(baja);
-            }
-        }
-        
-        return bajas;
-    }
-    
+
+    /**
+     * Contar el total de libros activos
+     */
     public int contarTotal() throws SQLException {
         String sql = "SELECT COUNT(*) as total FROM libros WHERE activo = 1";
         int total = 0;
@@ -259,26 +284,32 @@ public class LibroDAO {
         return total;
     }
     
+    /**
+     * Eliminar un libro permanentemente
+     */
     public boolean eliminar(int idLibro) throws SQLException {
-    String sql = "DELETE FROM libros WHERE id_libro = ?";
-    
+        String sql = "DELETE FROM libros WHERE id_libro = ?";
+        
         try (Connection conn = ConexionDB.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-        
-             ps.setInt(1, idLibro);
-              int filasAfectadas = ps.executeUpdate();
-              return filasAfectadas > 0;
-         }
-}
+            
+            ps.setInt(1, idLibro);
+            int filasAfectadas = ps.executeUpdate();
+            return filasAfectadas > 0;
+        }
+    }
     
-    
+    /**
+     * Mapear ResultSet a objeto Libro
+     */
     private Libro mapearLibro(ResultSet rs) throws SQLException {
         Libro libro = new Libro();
+        
         libro.setIdLibro(rs.getInt("id_libro"));
         libro.setTitulo(rs.getString("titulo"));
         libro.setAutor(rs.getString("autor"));
         libro.setIsbn(rs.getString("isbn"));
-        libro.setIdCategoria(rs.getInt("id_categoria"));
+        libro.setCategoria(rs.getString("categoria"));
         libro.setEditorial(rs.getString("editorial"));
         libro.setAnioPublicacion(rs.getInt("anio_publicacion"));
         libro.setCopiasTotales(rs.getInt("copias_totales"));
@@ -286,21 +317,7 @@ public class LibroDAO {
         libro.setActivo(rs.getBoolean("activo"));
         libro.setFechaRegistro(rs.getTimestamp("fecha_registro"));
         libro.setFechaModificacion(rs.getTimestamp("fecha_modificacion"));
-        return libro;
-    }
-    
-    private Libro mapearLibroVista(ResultSet rs) throws SQLException {
-        Libro libro = new Libro();
-        libro.setIdLibro(rs.getInt("id_libro"));
-        libro.setTitulo(rs.getString("titulo"));
-        libro.setAutor(rs.getString("autor"));
-        libro.setIsbn(rs.getString("isbn"));
-        libro.setNombreCategoria(rs.getString("categoria"));
-        libro.setEditorial(rs.getString("editorial"));
-        libro.setAnioPublicacion(rs.getInt("anio_publicacion"));
-        libro.setCopiasTotales(rs.getInt("copias_totales"));
-        libro.setCopiasDisponibles(rs.getInt("copias_disponibles"));
-        libro.setActivo(true);
+        
         return libro;
     }
 }

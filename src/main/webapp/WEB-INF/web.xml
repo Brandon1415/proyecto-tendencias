@@ -19,7 +19,7 @@
          PÁGINA DE BIENVENIDA
          ============================================ -->
     <welcome-file-list>
-        <welcome-file>vistas/index.jsp</welcome-file>
+        <welcome-file>index.jsp</welcome-file>
     </welcome-file-list>
 
     <!-- ============================================

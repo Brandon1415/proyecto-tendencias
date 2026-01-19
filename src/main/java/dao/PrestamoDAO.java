@@ -1,7 +1,6 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * DAO para gestionar operaciones de Préstamos
+ * 
  */
 package dao;
 
@@ -24,7 +23,6 @@ public class PrestamoDAO {
             cs.setInt(1, idLibro);
             cs.setInt(2, idLector);
             cs.setInt(3, idUsuario);
-            
             cs.execute();
             return true;
         }
@@ -43,7 +41,22 @@ public class PrestamoDAO {
     }
     
     public List<Map<String, Object>> listarHistorial() throws SQLException {
-        String sql = "SELECT * FROM vista_historial_prestamos ORDER BY fecha_prestamo DESC";
+        String sql = "SELECT p.*, " +
+                     "l.titulo as libro, l.isbn, " +
+                     "CONCAT(lec.nombre, ' ', lec.apellido) as lector, " +
+                     "lec.cedula, " +
+                     "CONCAT(u.nombre, ' ', u.apellido) as empleado, " +
+                     "CASE " +
+                     "  WHEN p.estado = 'ACTIVO' AND p.fecha_devolucion_esperada < CURDATE() THEN 'ATRASADO' " +
+                     "  ELSE p.estado " +
+                     "END as estado_actual, " +
+                     "DATEDIFF(CURDATE(), p.fecha_devolucion_esperada) as dias_retraso " +
+                     "FROM prestamos p " +
+                     "JOIN libros l ON p.id_libro = l.id_libro " +
+                     "JOIN lectores lec ON p.id_lector = lec.id_lector " +
+                     "JOIN usuarios u ON p.id_usuario = u.id_usuario " +
+                     "ORDER BY p.fecha_prestamo DESC";
+        
         List<Map<String, Object>> prestamos = new ArrayList<>();
         
         try (Connection conn = ConexionDB.getConnection();
@@ -59,7 +72,18 @@ public class PrestamoDAO {
     }
     
     public List<Map<String, Object>> listarActivos() throws SQLException {
-        String sql = "SELECT * FROM vista_historial_prestamos WHERE estado = 'ACTIVO' ORDER BY fecha_devolucion_esperada";
+        String sql = "SELECT p.*, " +
+                     "l.titulo as libro, l.isbn, " +
+                     "CONCAT(lec.nombre, ' ', lec.apellido) as lector, " +
+                     "lec.cedula, " +
+                     "CONCAT(u.nombre, ' ', u.apellido) as empleado " +
+                     "FROM prestamos p " +
+                     "JOIN libros l ON p.id_libro = l.id_libro " +
+                     "JOIN lectores lec ON p.id_lector = lec.id_lector " +
+                     "JOIN usuarios u ON p.id_usuario = u.id_usuario " +
+                     "WHERE p.estado = 'ACTIVO' " +
+                     "ORDER BY p.fecha_devolucion_esperada";
+        
         List<Map<String, Object>> prestamos = new ArrayList<>();
         
         try (Connection conn = ConexionDB.getConnection();
@@ -75,7 +99,18 @@ public class PrestamoDAO {
     }
     
     public List<Map<String, Object>> listarAtrasados() throws SQLException {
-        String sql = "SELECT * FROM vista_historial_prestamos WHERE estado = 'ATRASADO' ORDER BY dias_retraso DESC";
+        String sql = "SELECT p.*, " +
+                     "l.titulo as libro, l.isbn, " +
+                     "CONCAT(lec.nombre, ' ', lec.apellido) as lector, " +
+                     "lec.cedula, " +
+                     "CONCAT(u.nombre, ' ', u.apellido) as empleado " +
+                     "FROM prestamos p " +
+                     "JOIN libros l ON p.id_libro = l.id_libro " +
+                     "JOIN lectores lec ON p.id_lector = lec.id_lector " +
+                     "JOIN usuarios u ON p.id_usuario = u.id_usuario " +
+                     "WHERE p.estado = 'ATRASADO' " +
+                     "ORDER BY p.fecha_devolucion_esperada DESC";
+        
         List<Map<String, Object>> prestamos = new ArrayList<>();
         
         try (Connection conn = ConexionDB.getConnection();
@@ -91,23 +126,39 @@ public class PrestamoDAO {
     }
     
     public List<Map<String, Object>> obtenerPorLector(int idLector) throws SQLException {
-        String sql = "SELECT * FROM vista_historial_prestamos WHERE cedula = (SELECT cedula FROM lectores WHERE id_lector = ?) ORDER BY fecha_prestamo DESC";
-        List<Map<String, Object>> prestamos = new ArrayList<>();
-        
-        try (Connection conn = ConexionDB.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            
-            ps.setInt(1, idLector);
-            
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    prestamos.add(mapearPrestamoVista(rs));
-                }
-            }
-        }
-        
-        return prestamos;
-    }
+       String sql = "SELECT p.*, " +
+                    "l.titulo as libro, l.isbn, " +
+                    "CONCAT(lec.nombre, ' ', lec.apellido) as lector, " +
+                    "lec.cedula, " +
+                    "CONCAT(u.nombre, ' ', u.apellido) as empleado, " +
+                    "CASE " +
+                    "  WHEN p.estado = 'ACTIVO' AND p.fecha_devolucion_esperada < CURDATE() THEN 'ATRASADO' " +
+                    "  ELSE p.estado " +
+                    "END as estado_actual, " +
+                    "DATEDIFF(CURDATE(), p.fecha_devolucion_esperada) as dias_retraso " +
+                    "FROM prestamos p " +
+                    "JOIN libros l ON p.id_libro = l.id_libro " +
+                    "JOIN lectores lec ON p.id_lector = lec.id_lector " +
+                    "JOIN usuarios u ON p.id_usuario = u.id_usuario " +
+                    "WHERE p.id_lector = ? " +
+                    "ORDER BY p.fecha_prestamo DESC";
+
+       List<Map<String, Object>> prestamos = new ArrayList<>();
+
+       try (Connection conn = ConexionDB.getConnection();
+            PreparedStatement ps = conn.prepareStatement(sql)) {
+
+           ps.setInt(1, idLector);
+
+           try (ResultSet rs = ps.executeQuery()) {
+               while (rs.next()) {
+                   prestamos.add(mapearPrestamoVista(rs));
+               }
+           }
+       }
+
+       return prestamos;
+   }
     
     public List<Map<String, Object>> obtenerEstadisticasPorLector() throws SQLException {
         String sql = "SELECT * FROM vista_prestamos_por_lector ORDER BY total_prestamos DESC";
@@ -202,27 +253,25 @@ public class PrestamoDAO {
         return total;
     }
     
-        /**
-     * Cancelar un préstamo
-     */
     public boolean cancelarPrestamo(int idPrestamo) throws SQLException {
-        String sql = "UPDATE prestamos SET estado = 'CANCELADO' WHERE id_prestamo = ? AND estado = 'ACTIVO'";
-
+        String sql = "{CALL sp_cancelar_prestamo(?)}";
+        
         try (Connection conn = ConexionDB.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setInt(1, idPrestamo);
-            int filasAfectadas = ps.executeUpdate();
-            return filasAfectadas > 0;
+             CallableStatement cs = conn.prepareCall(sql)) {
+            
+            cs.setInt(1, idPrestamo);
+            cs.execute();
+            return true;
         }
     }
-
+    
     /**
-     * Actualizar un préstamo completo
+     * ✅ ACTUALIZAR PRESTAMO - EDITA LITERALMENTE TODO
      */
     public boolean actualizar(Prestamo prestamo) throws SQLException {
-        String sql = "UPDATE prestamos SET id_libro = ?, id_lector = ?, " +
-                     "fecha_prestamo = ?, fecha_devolucion_esperada = ?, observaciones = ? " +
+        String sql = "UPDATE prestamos SET id_libro = ?, id_lector = ?, id_usuario = ?, " +
+                     "fecha_prestamo = ?, fecha_devolucion_esperada = ?, fecha_devolucion_real = ?, " +
+                     "estado = ?, observaciones = ?, fecha_modificacion = NOW() " +
                      "WHERE id_prestamo = ?";
 
         try (Connection conn = ConexionDB.getConnection();
@@ -230,19 +279,25 @@ public class PrestamoDAO {
 
             ps.setInt(1, prestamo.getIdLibro());
             ps.setInt(2, prestamo.getIdLector());
-            ps.setDate(3, prestamo.getFechaPrestamo());
-            ps.setDate(4, prestamo.getFechaDevolucionEsperada());
-            ps.setString(5, prestamo.getObservaciones());
-            ps.setInt(6, prestamo.getIdPrestamo());
+            ps.setInt(3, prestamo.getIdUsuario());
+            ps.setDate(4, prestamo.getFechaPrestamo());
+            ps.setDate(5, prestamo.getFechaDevolucionEsperada());
+            
+            if (prestamo.getFechaDevolucionReal() != null) {
+                ps.setDate(6, prestamo.getFechaDevolucionReal());
+            } else {
+                ps.setNull(6, java.sql.Types.DATE);
+            }
+            
+            ps.setString(7, prestamo.getEstado());
+            ps.setString(8, prestamo.getObservaciones());
+            ps.setInt(9, prestamo.getIdPrestamo());
 
             int filasAfectadas = ps.executeUpdate();
             return filasAfectadas > 0;
         }
     }
-
-    /**
-     * Eliminar un préstamo (solo si no está activo)
-     */
+    
     public boolean eliminar(int idPrestamo) throws SQLException {
         String sql = "DELETE FROM prestamos WHERE id_prestamo = ?";
 
@@ -257,6 +312,7 @@ public class PrestamoDAO {
     
     private Prestamo mapearPrestamo(ResultSet rs) throws SQLException {
         Prestamo prestamo = new Prestamo();
+        
         prestamo.setIdPrestamo(rs.getInt("id_prestamo"));
         prestamo.setIdLibro(rs.getInt("id_libro"));
         prestamo.setIdLector(rs.getInt("id_lector"));
@@ -267,12 +323,17 @@ public class PrestamoDAO {
         prestamo.setEstado(rs.getString("estado"));
         prestamo.setObservaciones(rs.getString("observaciones"));
         prestamo.setFechaRegistro(rs.getTimestamp("fecha_registro"));
+        
         return prestamo;
     }
     
     private Map<String, Object> mapearPrestamoVista(ResultSet rs) throws SQLException {
         Map<String, Object> prestamo = new HashMap<>();
+        
         prestamo.put("id_prestamo", rs.getInt("id_prestamo"));
+        prestamo.put("id_libro", rs.getInt("id_libro"));
+        prestamo.put("id_lector", rs.getInt("id_lector"));
+        prestamo.put("id_usuario", rs.getInt("id_usuario"));
         prestamo.put("libro", rs.getString("libro"));
         prestamo.put("isbn", rs.getString("isbn"));
         prestamo.put("lector", rs.getString("lector"));
@@ -281,9 +342,11 @@ public class PrestamoDAO {
         prestamo.put("fecha_prestamo", rs.getDate("fecha_prestamo"));
         prestamo.put("fecha_devolucion_esperada", rs.getDate("fecha_devolucion_esperada"));
         prestamo.put("fecha_devolucion_real", rs.getDate("fecha_devolucion_real"));
+        prestamo.put("observaciones", rs.getString("observaciones"));
+        prestamo.put("fecha_modificacion", rs.getTimestamp("fecha_modificacion"));
         prestamo.put("estado", rs.getString("estado"));
-        prestamo.put("esta_atrasado", rs.getString("esta_atrasado"));
         prestamo.put("dias_retraso", rs.getInt("dias_retraso"));
+        
         return prestamo;
     }
 }

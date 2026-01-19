@@ -1,7 +1,6 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * DAO para gestionar operaciones de Lectores
+ * 
  */
 package dao;
 
@@ -13,8 +12,11 @@ import java.util.List;
 
 public class LectorDAO {
     
+    /**
+     * Listar todos los lectores
+     */
     public List<Lector> listarTodos() throws SQLException {
-        String sql = "SELECT * FROM lectores WHERE estado = 'ACTIVO' ORDER BY fecha_registro DESC";
+        String sql = "SELECT * FROM lectores ORDER BY nombre ASC";
         List<Lector> lectores = new ArrayList<>();
         
         try (Connection conn = ConexionDB.getConnection();
@@ -29,44 +31,65 @@ public class LectorDAO {
         return lectores;
     }
     
+    /**
+     * Insertar un nuevo lector
+     */
     public boolean insertar(Lector lector) throws SQLException {
-        String sql = "{CALL sp_insertar_lector(?, ?, ?, ?, ?, ?)}";
+        String sql = "INSERT INTO lectores (nombre, apellido, cedula, correo, telefono, direccion, estado) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?)";
         
         try (Connection conn = ConexionDB.getConnection();
-             CallableStatement cs = conn.prepareCall(sql)) {
+             PreparedStatement ps = conn.prepareStatement(sql)) {
             
-            cs.setString(1, lector.getNombre());
-            cs.setString(2, lector.getApellido());
-            cs.setString(3, lector.getCedula());
-            cs.setString(4, lector.getCorreo());
-            cs.setString(5, lector.getTelefono());
-            cs.setString(6, lector.getDireccion());
+            ps.setString(1, lector.getNombre());
+            ps.setString(2, lector.getApellido());
+            ps.setString(3, lector.getCedula());
+            ps.setString(4, lector.getCorreo());
+            ps.setString(5, lector.getTelefono());
+            ps.setString(6, lector.getDireccion());
+            ps.setString(7, lector.getEstado() != null ? lector.getEstado() : "ACTIVO");
             
-            cs.execute();
-            return true;
+            int filasAfectadas = ps.executeUpdate();
+            return filasAfectadas > 0;
         }
     }
     
+    /**
+     * ✅ ACTUALIZAR LECTOR - EDITA LITERALMENTE TODO
+     */
     public boolean actualizar(Lector lector) throws SQLException {
-        String sql = "{CALL sp_actualizar_lector(?, ?, ?, ?, ?, ?, ?, ?)}";
+        String sql = "UPDATE lectores SET nombre = ?, apellido = ?, cedula = ?, " +
+                     "correo = ?, telefono = ?, direccion = ?, estado = ?, fecha_registro = ? " +
+                     "WHERE id_lector = ?";
         
         try (Connection conn = ConexionDB.getConnection();
-             CallableStatement cs = conn.prepareCall(sql)) {
+             PreparedStatement ps = conn.prepareStatement(sql)) {
             
-            cs.setInt(1, lector.getIdLector());
-            cs.setString(2, lector.getNombre());
-            cs.setString(3, lector.getApellido());
-            cs.setString(4, lector.getCedula());
-            cs.setString(5, lector.getCorreo());
-            cs.setString(6, lector.getTelefono());
-            cs.setString(7, lector.getDireccion());
-            cs.setString(8, lector.getEstado());
+            ps.setString(1, lector.getNombre());
+            ps.setString(2, lector.getApellido());
+            ps.setString(3, lector.getCedula());
+            ps.setString(4, lector.getCorreo());
+            ps.setString(5, lector.getTelefono());
+            ps.setString(6, lector.getDireccion());
+            ps.setString(7, lector.getEstado());
             
-            cs.execute();
-            return true;
+            // ✅ Permitir editar fecha_registro también
+            if (lector.getFechaRegistro() != null) {
+                ps.setTimestamp(8, lector.getFechaRegistro());
+            } else {
+                ps.setNull(8, java.sql.Types.TIMESTAMP);
+            }
+            
+            ps.setInt(9, lector.getIdLector());
+            
+            int filasAfectadas = ps.executeUpdate();
+            return filasAfectadas > 0;
         }
     }
     
+    /**
+     * Eliminar un lector
+     */
     public boolean eliminar(int idLector) throws SQLException {
         String sql = "DELETE FROM lectores WHERE id_lector = ?";
 
@@ -79,6 +102,9 @@ public class LectorDAO {
         }
     }
     
+    /**
+     * Obtener lector por ID
+     */
     public Lector obtenerPorId(int idLector) throws SQLException {
         String sql = "SELECT * FROM lectores WHERE id_lector = ?";
         Lector lector = null;
@@ -98,6 +124,9 @@ public class LectorDAO {
         return lector;
     }
     
+    /**
+     * Obtener lector por cédula
+     */
     public Lector obtenerPorCedula(String cedula) throws SQLException {
         String sql = "SELECT * FROM lectores WHERE cedula = ?";
         Lector lector = null;
@@ -117,11 +146,15 @@ public class LectorDAO {
         return lector;
     }
     
+    /**
+     * Buscar lectores por criterio
+     */
     public List<Lector> buscar(String criterio) throws SQLException {
-        String sql = "SELECT * FROM lectores WHERE estado = 'ACTIVO' AND " +
+        String sql = "SELECT * FROM lectores WHERE " +
                      "(nombre LIKE ? OR apellido LIKE ? OR cedula LIKE ?) " +
                      "ORDER BY nombre";
         List<Lector> lectores = new ArrayList<>();
+        
         String busqueda = "%" + criterio + "%";
         
         try (Connection conn = ConexionDB.getConnection();
@@ -141,8 +174,11 @@ public class LectorDAO {
         return lectores;
     }
     
+    /**
+     * Contar total de lectores
+     */
     public int contarTotal() throws SQLException {
-        String sql = "SELECT COUNT(*) as total FROM lectores WHERE estado = 'ACTIVO'";
+        String sql = "SELECT COUNT(*) as total FROM lectores";
         int total = 0;
         
         try (Connection conn = ConexionDB.getConnection();
@@ -157,9 +193,12 @@ public class LectorDAO {
         return total;
     }
     
-    
+    /**
+     * Mapear ResultSet a Lector
+     */
     private Lector mapearLector(ResultSet rs) throws SQLException {
         Lector lector = new Lector();
+        
         lector.setIdLector(rs.getInt("id_lector"));
         lector.setNombre(rs.getString("nombre"));
         lector.setApellido(rs.getString("apellido"));
@@ -169,7 +208,7 @@ public class LectorDAO {
         lector.setDireccion(rs.getString("direccion"));
         lector.setEstado(rs.getString("estado"));
         lector.setFechaRegistro(rs.getTimestamp("fecha_registro"));
-        lector.setFechaModificacion(rs.getTimestamp("fecha_modificacion"));
+        
         return lector;
     }
 }

@@ -1,8 +1,8 @@
 <%-- 
     Document   : form_baja
-    Created on : 11/01/2026, 14:35:04
-    Author     : ASUS
+    ✅ ACTUALIZADO: Permite editar LITERALMENTE TODO (motivo, descripcion, fechas)
 --%>
+
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <!DOCTYPE html>
@@ -56,28 +56,54 @@
                     <!-- Información de la Baja (editable) -->
                     <div class="form-section">
                         <h3>📋 Información de la Baja</h3>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="motivo">Motivo: *</label>
-                                <select id="motivo" name="motivo" required>
-                                    <option value="">Seleccione un motivo</option>
-                                    <option value="DETERIORADO" ${baja.motivo == 'DETERIORADO' ? 'selected' : ''}>Deteriorado</option>
-                                    <option value="PERDIDO" ${baja.motivo == 'PERDIDO' ? 'selected' : ''}>Perdido</option>
-                                    <option value="OBSOLETO" ${baja.motivo == 'OBSOLETO' ? 'selected' : ''}>Obsoleto</option>
-                                    <option value="OTRO" ${baja.motivo == 'OTRO' ? 'selected' : ''}>Otro</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="fechaBaja">Fecha de Baja: *</label>
-                                <input type="date" id="fechaBaja" name="fechaBaja" 
-                                       value="${baja.fechaBaja}" required>
-                            </div>
+                        
+                        <!-- ✅ Motivo (EDITABLE) -->
+                        <div class="form-group">
+                            <label for="motivo">Motivo <span class="required">*</span></label>
+                            <select id="motivo" name="motivo" required>
+                                <option value="">Seleccione un motivo</option>
+                                <option value="DETERIORADO" ${baja.motivo == 'DETERIORADO' ? 'selected' : ''}>Deteriorado</option>
+                                <option value="PERDIDO" ${baja.motivo == 'PERDIDO' ? 'selected' : ''}>Perdido</option>
+                                <option value="OBSOLETO" ${baja.motivo == 'OBSOLETO' ? 'selected' : ''}>Obsoleto</option>
+                                <option value="OTRO" ${baja.motivo == 'OTRO' ? 'selected' : ''}>Otro</option>
+                            </select>
                         </div>
                         
+                        <!-- ✅ Descripción (EDITABLE) -->
                         <div class="form-group">
-                            <label for="descripcion">Descripción: *</label>
-                            <textarea id="descripcion" name="descripcion" rows="5" 
+                            <label for="descripcion">Descripción <span class="required">*</span></label>
+                            <textarea id="descripcion" name="descripcion" rows="4" 
                                       required placeholder="Describa el motivo de la baja...">${baja.descripcion}</textarea>
+                        </div>
+                        
+                        <!-- ✅ Fecha de Baja (EDITABLE) -->
+                        <div class="form-group">
+                            <label for="fechaBaja">Fecha de Baja <span class="required">*</span></label>
+                            <input type="date" id="fechaBaja" name="fechaBaja" 
+                                   value="${baja.fechaBaja}" required>
+                            <small style="color: #7f8c8d; font-size: 0.85rem;">
+                                Editable - fecha en que se dio de baja el libro
+                            </small>
+                        </div>
+                        
+                        <!-- ✅ Fecha Registro (EDITABLE) -->
+                        <div class="form-group">
+                            <label for="fechaRegistro">Fecha Registro</label>
+                            <input type="datetime-local" id="fechaRegistro" name="fechaRegistro"
+                                   value="${baja.fechaRegistro}">
+                            <small style="color: #7f8c8d; font-size: 0.85rem;">
+                                Editable - fecha y hora en que se registró la baja
+                            </small>
+                        </div>
+                        
+                        <!-- ✅ Fecha Modificación (EDITABLE) -->
+                        <div class="form-group">
+                            <label for="fechaModificacion">Fecha Modificación</label>
+                            <input type="datetime-local" id="fechaModificacion" name="fechaModificacion"
+                                   value="${baja.fechaModificacion}">
+                            <small style="color: #7f8c8d; font-size: 0.85rem;">
+                                Editable - última fecha de modificación
+                            </small>
                         </div>
                     </div>
                     

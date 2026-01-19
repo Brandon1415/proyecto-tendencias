@@ -1,12 +1,6 @@
 <%-- 
     Document   : reservas
-    Created on : 09/01/2026, 15:44:04
-    Author     : ASUS
---%>
-<%-- 
-    Document   : reservas
-    Created on : 09/01/2026, 15:44:04
-    Author     : ASUS
+    ✅ ACTUALIZADO: Muestra TODOS los datos incluyendo fecha_modificacion
 --%>
 
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
@@ -50,7 +44,7 @@
             </div>
             
             <div class="table-container">
-                <h2>Reservas Activas</h2>
+                <h2>Todas las Reservas</h2>
                 <table class="data-table">
                     <thead>
                         <tr>
@@ -62,6 +56,8 @@
                             <th>Teléfono</th>
                             <th>Fecha Reserva</th>
                             <th>Fecha Expiración</th>
+                            <th>Fecha Registro</th>
+                            <th>Fecha Modificación</th>
                             <th>Días Restantes</th>
                             <th>Estado</th>
                             <th>Acciones</th>
@@ -78,31 +74,60 @@
                                 <td>${reserva.telefono}</td>
                                 <td>${reserva.fecha_reserva}</td>
                                 <td>${reserva.fecha_expiracion}</td>
+                                <td>${reserva.fecha_registro}</td>
+                                <td>${reserva.fecha_modificacion}</td>
                                 <td>
                                     <c:choose>
-                                        <c:when test="${reserva.dias_restantes >= 1}">
-                                            <span class="badge badge-success">${reserva.dias_restantes} días</span>
-                                        </c:when>
-                                        <c:when test="${reserva.dias_restantes == 0}">
-                                            <span class="badge badge-warning">Hoy</span>
+                                        <c:when test="${reserva.estado == 'PENDIENTE'}">
+                                            <c:choose>
+                                                <c:when test="${reserva.dias_restantes >= 1}">
+                                                    <span class="badge badge-success">${reserva.dias_restantes} días</span>
+                                                </c:when>
+                                                <c:when test="${reserva.dias_restantes == 0}">
+                                                    <span class="badge badge-warning">Hoy</span>
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <span class="badge badge-danger">Expirada</span>
+                                                </c:otherwise>
+                                            </c:choose>
                                         </c:when>
                                         <c:otherwise>
-                                            <span class="badge badge-danger">Expirada</span>
+                                            <span class="badge badge-secondary">-</span>
                                         </c:otherwise>
                                     </c:choose>
                                 </td>
                                 <td>
-                                    <span class="badge badge-primary">${reserva.estado}</span>
+                                    <c:choose>
+                                        <c:when test="${reserva.estado == 'PENDIENTE'}">
+                                            <span class="badge badge-warning">${reserva.estado}</span>
+                                        </c:when>
+                                        <c:when test="${reserva.estado == 'COMPLETADA'}">
+                                            <span class="badge badge-success">${reserva.estado}</span>
+                                        </c:when>
+                                        <c:when test="${reserva.estado == 'CANCELADA'}">
+                                            <span class="badge badge-danger">${reserva.estado}</span>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <span class="badge badge-secondary">${reserva.estado}</span>
+                                        </c:otherwise>
+                                    </c:choose>
                                 </td>
                                 <td class="actions">
-                                    <a href="ControladorSistema?action=completarReserva&id=${reserva.id_reserva}" 
-                                       class="btn-icon btn-success" title="Completar Reserva"
-                                       onclick="return confirm('¿Marcar reserva como completada?')">✅</a>
+                                    <!-- Botón Editar -->
                                     <a href="ControladorSistema?action=editarReserva&id=${reserva.id_reserva}" 
                                        class="btn-icon btn-edit" title="Editar">✏️</a>
-                                    <a href="ControladorSistema?action=cancelarReserva&id=${reserva.id_reserva}" 
-                                       class="btn-icon btn-warning" title="Cancelar Reserva"
-                                       onclick="return confirm('⚠️ ¿Cancelar esta reserva?')">❌</a>
+                                    
+                                    <!-- Acciones si está PENDIENTE -->
+                                    <c:if test="${reserva.estado == 'PENDIENTE'}">
+                                        <a href="ControladorSistema?action=completarReserva&id=${reserva.id_reserva}" 
+                                           class="btn-icon btn-success" title="Completar Reserva"
+                                           onclick="return confirm('✅ ¿Marcar reserva como completada?')">✅</a>
+                                        <a href="ControladorSistema?action=cancelarReserva&id=${reserva.id_reserva}" 
+                                           class="btn-icon btn-warning" title="Cancelar Reserva"
+                                           onclick="return confirm('⚠️ ¿Cancelar esta reserva?\n\nLibro: ${reserva.libro}\nLector: ${reserva.lector}')">❌</a>
+                                    </c:if>
+                                    
+                                    <!-- Botón eliminar para todas -->
                                     <a href="ControladorSistema?action=eliminarReserva&id=${reserva.id_reserva}" 
                                        class="btn-icon btn-delete" title="Eliminar"
                                        onclick="return confirm('⚠️ ¿Estás seguro de ELIMINAR esta reserva?\n\nEsta acción NO se puede deshacer.\n\nLibro: ${reserva.libro}\nLector: ${reserva.lector}')">🗑️</a>
@@ -114,7 +139,7 @@
                 
                 <c:if test="${empty reservas}">
                     <div class="empty-state">
-                        <p>😕 No hay reservas activas</p>
+                        <p>😕 No hay reservas registradas</p>
                     </div>
                 </c:if>
             </div>

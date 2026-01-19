@@ -1,7 +1,6 @@
 <%-- 
     Document   : lectores
-    Created on : 09/01/2026, 13:04:41
-    Author     : ASUS
+    ✅ ACTUALIZADO: Muestra todos los datos incluyendo fecha_registro
 --%>
 
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
@@ -60,7 +59,9 @@
                             <th>Cédula</th>
                             <th>Correo</th>
                             <th>Teléfono</th>
+                            <th>Dirección</th>
                             <th>Estado</th>
+                            <th>Fecha Registro</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
@@ -72,11 +73,14 @@
                                 <td>${lector.cedula}</td>
                                 <td>${lector.correo}</td>
                                 <td>${lector.telefono}</td>
+                                <td>${lector.direccion}</td>
                                 <td>
-                                    <span class="badge ${lector.estado == 'ACTIVO' ? 'badge-success' : 'badge-danger'}">
+                                    <span class="badge ${lector.estado == 'ACTIVO' ? 'badge-success' : 
+                                                         lector.estado == 'SUSPENDIDO' ? 'badge-danger' : 'badge-warning'}">
                                         ${lector.estado}
                                     </span>
                                 </td>
+                                <td>${lector.fechaRegistro}</td>
                                 <td class="actions">
                                     <a href="ControladorSistema?action=editarLector&id=${lector.idLector}" 
                                        class="btn-icon btn-edit" title="Editar">✏️</a>

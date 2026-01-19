@@ -1,7 +1,6 @@
 <%-- 
     Document   : prestamos
-    Created on : 09/01/2026, 13:06:32
-    Author     : ASUS
+    ✅ ACTUALIZADO: Muestra TODOS los datos incluyendo observaciones y fecha_modificacion
 --%>
 
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
@@ -51,10 +50,15 @@
                         <tr>
                             <th>#</th>
                             <th>Libro</th>
+                            <th>ISBN</th>
                             <th>Lector</th>
                             <th>Cédula</th>
+                            <th>Empleado</th>
                             <th>Fecha Préstamo</th>
-                            <th>Fecha Devolución</th>
+                            <th>Devolución Esperada</th>
+                            <th>Devolución Real</th>
+                            <th>Observaciones</th>
+                            <th>Fecha Modificación</th>
                             <th>Estado</th>
                             <th>Retraso</th>
                             <th>Acciones</th>
@@ -65,10 +69,24 @@
                             <tr>
                                 <td>${prestamo.id_prestamo}</td>
                                 <td><strong>${prestamo.libro}</strong></td>
+                                <td>${prestamo.isbn}</td>
                                 <td>${prestamo.lector}</td>
                                 <td>${prestamo.cedula}</td>
+                                <td>${prestamo.empleado}</td>
                                 <td>${prestamo.fecha_prestamo}</td>
                                 <td>${prestamo.fecha_devolucion_esperada}</td>
+                                <td>${prestamo.fecha_devolucion_real}</td>
+                                <td>
+                                    <c:choose>
+                                        <c:when test="${not empty prestamo.observaciones}">
+                                            ${prestamo.observaciones}
+                                        </c:when>
+                                        <c:otherwise>
+                                            <span style="color: #7f8c8d; font-style: italic;">Sin observaciones</span>
+                                        </c:otherwise>
+                                    </c:choose>
+                                </td>
+                                <td>${prestamo.fecha_modificacion}</td>
                                 <td>
                                     <span class="badge ${prestamo.estado == 'DEVUELTO' ? 'badge-success' : 
                                                          prestamo.estado == 'ACTIVO' ? 'badge-warning' : 
@@ -82,34 +100,25 @@
                                     </c:if>
                                 </td>
                                 <td class="actions">
+                                    <!-- Botón Editar -->
+                                    <a href="ControladorSistema?action=editarPrestamo&id=${prestamo.id_prestamo}" 
+                                       class="btn-icon btn-edit" title="Editar">✏️</a>
+                                    
                                     <c:choose>
-                                        <c:when test="${prestamo.estado == 'ACTIVO'}">
-                                            <!-- Préstamos ACTIVOS: Devolver, Editar, Cancelar -->
+                                        <c:when test="${prestamo.estado == 'ACTIVO' || prestamo.estado == 'ATRASADO'}">
+                                            <!-- Préstamos ACTIVOS o ATRASADOS -->
                                             <a href="ControladorSistema?action=registrarDevolucion&id=${prestamo.id_prestamo}" 
                                                class="btn-icon btn-success" title="Registrar Devolución"
                                                onclick="return confirm('¿Confirmar devolución del libro?')">✅</a>
-                                            <a href="ControladorSistema?action=editarPrestamo&id=${prestamo.id_prestamo}" 
-                                               class="btn-icon btn-edit" title="Editar">✏️</a>
                                             <a href="ControladorSistema?action=cancelarPrestamo&id=${prestamo.id_prestamo}" 
                                                class="btn-icon btn-warning" title="Cancelar Préstamo"
-                                               onclick="return confirm('⚠️ ¿Cancelar este préstamo?\n\nEsto marcará el préstamo como cancelado.')">❌</a>
-                                        </c:when>
-                                        <c:when test="${prestamo.estado == 'ATRASADO'}">
-                                            <!-- Préstamos ATRASADOS: Devolver, Editar, Cancelar -->
-                                            <a href="ControladorSistema?action=registrarDevolucion&id=${prestamo.id_prestamo}" 
-                                               class="btn-icon btn-success" title="Registrar Devolución"
-                                               onclick="return confirm('¿Confirmar devolución del libro?\n\nNota: Este préstamo está ATRASADO.')">✅</a>
-                                            <a href="ControladorSistema?action=editarPrestamo&id=${prestamo.id_prestamo}" 
-                                               class="btn-icon btn-edit" title="Editar">✏️</a>
-                                            <a href="ControladorSistema?action=cancelarPrestamo&id=${prestamo.id_prestamo}" 
-                                               class="btn-icon btn-warning" title="Cancelar Préstamo"
-                                               onclick="return confirm('⚠️ ¿Cancelar este préstamo atrasado?')">❌</a>
+                                               onclick="return confirm('⚠️ ¿Cancelar este préstamo?')">❌</a>
                                         </c:when>
                                         <c:otherwise>
-                                            <!-- Préstamos DEVUELTOS o CANCELADOS: Solo eliminar -->
+                                            <!-- Préstamos DEVUELTOS o CANCELADOS -->
                                             <a href="ControladorSistema?action=eliminarPrestamo&id=${prestamo.id_prestamo}" 
                                                class="btn-icon btn-delete" title="Eliminar"
-                                               onclick="return confirm('⚠️ ¿Estás seguro de ELIMINAR este préstamo?\n\nEsta acción NO se puede deshacer.\n\nLibro: ${prestamo.libro}\nLector: ${prestamo.lector}')">🗑️</a>
+                                               onclick="return confirm('⚠️ ¿ELIMINAR este préstamo?\n\nEsta acción NO se puede deshacer.\n\nLibro: ${prestamo.libro}\nLector: ${prestamo.lector}')">🗑️</a>
                                         </c:otherwise>
                                     </c:choose>
                                 </td>

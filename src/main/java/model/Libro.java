@@ -1,7 +1,6 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Modelo Libro
+ * ✅ ACTUALIZADO: categoria es String (no int)
  */
 package model;
 
@@ -13,8 +12,7 @@ public class Libro {
     private String titulo;
     private String autor;
     private String isbn;
-    private int idCategoria;
-    private String nombreCategoria;
+    private String categoria;
     private String editorial;
     private int anioPublicacion;
     private int copiasTotales;
@@ -26,17 +24,19 @@ public class Libro {
     public Libro() {
     }
     
-    public Libro(String titulo, String autor, String isbn, int idCategoria, String editorial, int anioPublicacion, int copiasTotales) {
+    public Libro(String titulo, String autor, String isbn, String categoria, String editorial, int anioPublicacion, int copiasTotales) {
         this.titulo = titulo;
         this.autor = autor;
         this.isbn = isbn;
-        this.idCategoria = idCategoria;
+        this.categoria = categoria;
         this.editorial = editorial;
         this.anioPublicacion = anioPublicacion;
         this.copiasTotales = copiasTotales;
         this.copiasDisponibles = copiasTotales;
         this.activo = true;
     }
+    
+    // GETTERS Y SETTERS
     
     public int getIdLibro() {
         return idLibro;
@@ -70,20 +70,12 @@ public class Libro {
         this.isbn = isbn;
     }
     
-    public int getIdCategoria() {
-        return idCategoria;
+    public String getCategoria() {
+        return categoria;
     }
     
-    public void setIdCategoria(int idCategoria) {
-        this.idCategoria = idCategoria;
-    }
-    
-    public String getNombreCategoria() {
-        return nombreCategoria;
-    }
-    
-    public void setNombreCategoria(String nombreCategoria) {
-        this.nombreCategoria = nombreCategoria;
+    public void setCategoria(String categoria) {
+        this.categoria = categoria;
     }
     
     public String getEditorial() {
@@ -142,6 +134,8 @@ public class Libro {
         this.fechaModificacion = fechaModificacion;
     }
     
+    // MÉTODOS ÚTILES
+    
     public int getCopiasPrestadas() {
         return copiasTotales - copiasDisponibles;
     }
@@ -163,6 +157,7 @@ public class Libro {
                 ", titulo='" + titulo + '\'' +
                 ", autor='" + autor + '\'' +
                 ", isbn='" + isbn + '\'' +
+                ", categoria='" + categoria + '\'' +
                 ", editorial='" + editorial + '\'' +
                 ", copiasTotales=" + copiasTotales +
                 ", copiasDisponibles=" + copiasDisponibles +

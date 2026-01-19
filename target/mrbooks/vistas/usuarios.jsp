@@ -1,7 +1,6 @@
 <%-- 
     Document   : usuarios
-    Created on : 09/01/2026, 13:03:48
-    Author     : ASUS
+    ✅ VERSIÓN FINAL: Solo muestra campos que existen en la BD
 --%>
 
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
@@ -51,10 +50,10 @@
                         <tr>
                             <th>#</th>
                             <th>Nombre</th>
+                            <th>Apellido</th>
                             <th>Email</th>
                             <th>Rol</th>
                             <th>Estado</th>
-                            <th>Bloqueado</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
@@ -62,7 +61,8 @@
                         <c:forEach var="usuario" items="${usuarios}">
                             <tr>
                                 <td>${usuario.idUsuario}</td>
-                                <td><strong>${usuario.nombreCompleto}</strong></td>
+                                <td><strong>${usuario.nombre}</strong></td>
+                                <td>${usuario.apellido}</td>
                                 <td>${usuario.email}</td>
                                 <td>
                                     <span class="badge ${usuario.rol == 'ADMINISTRADOR' ? 'badge-primary' : 'badge-secondary'}">
@@ -70,26 +70,24 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <span class="badge ${usuario.estado == 'ACTIVO' ? 'badge-success' : 'badge-danger'}">
+                                    <span class="badge ${usuario.estado == 'ACTIVO' ? 'badge-success' : 
+                                                         usuario.estado == 'BLOQUEADO' ? 'badge-danger' : 'badge-warning'}">
                                         ${usuario.estado}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="badge ${usuario.bloqueado ? 'badge-warning' : 'badge-success'}">
-                                        ${usuario.bloqueado ? 'SÍ' : 'NO'}
                                     </span>
                                 </td>
                                 <td class="actions">
                                     <a href="ControladorSistema?action=editarUsuario&id=${usuario.idUsuario}" 
                                        class="btn-icon btn-edit" title="Editar">✏️</a>
-                                    <c:if test="${usuario.bloqueado}">
+                                    
+                                    <c:if test="${usuario.estado == 'BLOQUEADO'}">
                                         <a href="ControladorSistema?action=desbloquearUsuario&id=${usuario.idUsuario}" 
                                            class="btn-icon btn-success" title="Desbloquear"
-                                           onclick="return confirm('¿Desbloquear usuario?')">🔓</a>
+                                           onclick="return confirm('¿Desbloquear usuario?\n\nNombre: ${usuario.nombre} ${usuario.apellido}')">🔓</a>
                                     </c:if>
+                                    
                                     <a href="ControladorSistema?action=eliminarUsuario&id=${usuario.idUsuario}" 
                                        class="btn-icon btn-delete" title="Eliminar"
-                                       onclick="return confirm('⚠️ ¿Estás seguro de ELIMINAR este usuario?\n\nEsta acción NO se puede deshacer.\n\nUsuario: ${usuario.nombreCompleto}\nEmail: ${usuario.email}')">🗑️</a>
+                                       onclick="return confirm('⚠️ ¿ELIMINAR este usuario?\n\nEsta acción NO se puede deshacer.\n\nUsuario: ${usuario.nombre} ${usuario.apellido}\nEmail: ${usuario.email}')">🗑️</a>
                                 </td>
                             </tr>
                         </c:forEach>
@@ -97,17 +95,17 @@
                 </table>
             </div>
             
+            <!-- Sección de usuarios bloqueados -->
             <c:if test="${not empty bloqueados}">
                 <div class="table-container">
                     <h2>⚠️ Usuarios Bloqueados</h2>
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>ID</th>
+                                <th>#</th>
+                                <th>Nombre</th>
                                 <th>Email</th>
                                 <th>Rol</th>
-                                <th>Intentos</th>
-                                <th>Fecha Bloqueo</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -115,16 +113,22 @@
                             <c:forEach var="usuario" items="${bloqueados}">
                                 <tr>
                                     <td>${usuario.idUsuario}</td>
+                                    <td><strong>${usuario.nombre} ${usuario.apellido}</strong></td>
                                     <td>${usuario.email}</td>
-                                    <td>${usuario.rol}</td>
-                                    <td>${usuario.intentosFallidos}</td>
-                                    <td>${usuario.fechaBloqueo}</td>
+                                    <td>
+                                        <span class="badge ${usuario.rol == 'ADMINISTRADOR' ? 'badge-primary' : 'badge-secondary'}">
+                                            ${usuario.rol}
+                                        </span>
+                                    </td>
                                     <td class="actions">
                                         <a href="ControladorSistema?action=desbloquearUsuario&id=${usuario.idUsuario}" 
-                                           class="btn btn-secondary btn-sm"
-                                           onclick="return confirm('¿Desbloquear usuario?')">
-                                            🔓 Desbloquear
-                                        </a>
+                                           class="btn-icon btn-success" title="Desbloquear"
+                                           onclick="return confirm('¿Desbloquear usuario?')">🔓</a>
+                                        <a href="ControladorSistema?action=editarUsuario&id=${usuario.idUsuario}" 
+                                           class="btn-icon btn-edit" title="Editar">✏️</a>
+                                        <a href="ControladorSistema?action=eliminarUsuario&id=${usuario.idUsuario}" 
+                                           class="btn-icon btn-delete" title="Eliminar"
+                                           onclick="return confirm('⚠️ ¿ELIMINAR este usuario bloqueado?')">🗑️</a>
                                     </td>
                                 </tr>
                             </c:forEach>

@@ -19,39 +19,41 @@
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
-                <h2>📚 MR Books</h2>
+                <!-- LOGO -->
+                <img src="${pageContext.request.contextPath}/img/logoOf.png" alt="MR Books Logo" class="sidebar-logo">
+                               
                 <div class="user-info">
-                    <p class="user-name">${nombreUsuario}</p>
+                    <p class="user-name">👤 ${nombreUsuario}</p>
                     <span class="user-role">${rol}</span>
                 </div>
             </div>
             
             <nav class="sidebar-menu">
                 <a href="ControladorSistema?action=dashboard" class="menu-item active">
-                    <span>📊</span> Dashboard
+                    <span>📊</span> <span>Dashboard</span>
                 </a>
                 <c:if test="${rol == 'ADMINISTRADOR'}">
                     <a href="ControladorSistema?action=listarUsuarios" class="menu-item">
-                        <span>👤</span> Usuarios
+                        <span>👤</span> <span>Usuarios</span>
                     </a>
                 </c:if>
                 <a href="ControladorSistema?action=listarLectores" class="menu-item">
-                    <span>👥</span> Lectores
+                    <span>👥</span> <span>Lectores</span>
                 </a>
                 <a href="ControladorSistema?action=listarLibros" class="menu-item">
-                    <span>📖</span> Libros
+                    <span>📚</span> <span>Libros</span>
                 </a>
                 <a href="ControladorSistema?action=listarPrestamos" class="menu-item">
-                    <span>🔄</span> Préstamos
+                    <span>🔄</span> <span>Préstamos</span>
                 </a>
                 <a href="ControladorSistema?action=listarReservas" class="menu-item">
-                    <span>📅</span> Reservas
+                    <span>📅</span> <span>Reservas</span>
                 </a>
                 <a href="ControladorSistema?action=reportes" class="menu-item">
-                    <span>📈</span> Reportes
+                    <span>📈</span> <span>Reportes</span>
                 </a>
                 <a href="ControladorSistema?action=logout" class="menu-item menu-logout">
-                    <span>🚪</span> Cerrar Sesión
+                    <span>🚪</span> <span>Cerrar Sesión</span>
                 </a>
             </nav>
         </aside>
@@ -122,14 +124,6 @@
                         </div>
                     </div>
                 </c:if>
-                
-                <div class="kpi-card">
-                    <div class="kpi-icon">🏷️</div>
-                    <div class="kpi-info">
-                        <h3>${kpis.total_categorias}</h3>
-                        <p>Categorías</p>
-                    </div>
-                </div>
             </div>
             
             <!-- Estadísticas -->
