@@ -1,6 +1,6 @@
 /*
  * DAO para gestionar el Historial de Bajas de Libros
- * 
+ * ✅ ACTUALIZADO: Al eliminar una baja, reactiva el libro
  */
 package dao;
 
@@ -138,15 +138,52 @@ public class BajaLibroDAO {
         }
     }
     
+    /**
+     * ✅ ELIMINAR BAJA: Primero reactiva el libro, luego elimina la baja
+     */
     public boolean eliminar(int idBaja) throws SQLException {
-        String sql = "DELETE FROM historial_bajas WHERE id_baja = ?";
+        String sqlObtenerLibro = "SELECT id_libro FROM historial_bajas WHERE id_baja = ?";
+        String sqlEliminarBaja = "DELETE FROM historial_bajas WHERE id_baja = ?";
+        String sqlReactivarLibro = "UPDATE libros SET activo = 1, fecha_modificacion = NOW() WHERE id_libro = ?";
         
-        try (Connection conn = ConexionDB.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = ConexionDB.getConnection()) {
+            conn.setAutoCommit(false);
             
-            ps.setInt(1, idBaja);
-            int filasAfectadas = ps.executeUpdate();
-            return filasAfectadas > 0;
+            try {
+                int idLibro = 0;
+                
+                // 1. Obtener el id_libro de la baja
+                try (PreparedStatement ps1 = conn.prepareStatement(sqlObtenerLibro)) {
+                    ps1.setInt(1, idBaja);
+                    try (ResultSet rs = ps1.executeQuery()) {
+                        if (rs.next()) {
+                            idLibro = rs.getInt("id_libro");
+                        }
+                    }
+                }
+                
+                // 2. Eliminar la baja
+                try (PreparedStatement ps2 = conn.prepareStatement(sqlEliminarBaja)) {
+                    ps2.setInt(1, idBaja);
+                    ps2.executeUpdate();
+                }
+                
+                // 3. Reactivar el libro
+                if (idLibro > 0) {
+                    try (PreparedStatement ps3 = conn.prepareStatement(sqlReactivarLibro)) {
+                        ps3.setInt(1, idLibro);
+                        ps3.executeUpdate();
+                    }
+                }
+                
+                conn.commit();
+                return true;
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
         }
     }
     

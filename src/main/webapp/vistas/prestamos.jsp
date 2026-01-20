@@ -60,7 +60,6 @@
                             <th>Observaciones</th>
                             <th>Fecha Modificación</th>
                             <th>Estado</th>
-                            <th>Retraso</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
@@ -93,11 +92,6 @@
                                                          prestamo.estado == 'CANCELADO' ? 'badge-secondary' : 'badge-danger'}">
                                         ${prestamo.estado}
                                     </span>
-                                </td>
-                                <td>
-                                    <c:if test="${prestamo.dias_retraso > 0}">
-                                        <span class="badge badge-danger">${prestamo.dias_retraso} días</span>
-                                    </c:if>
                                 </td>
                                 <td class="actions">
                                     <!-- Botón Editar -->

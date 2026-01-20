@@ -104,36 +104,6 @@
                             </select>
                         </div>
                         
-                        <!-- ✅ Intentos Fallidos (EDITABLE) -->
-                        <div class="form-group">
-                            <label for="intentos">Intentos Fallidos</label>
-                            <input type="number" id="intentos" name="intentos"
-                                   value="${usuario.intentosFallidos}" 
-                                   min="0" max="10">
-                            <small style="color: #7f8c8d; font-size: 0.85rem;">
-                                Editable - controla cuántos intentos fallidos ha tenido
-                            </small>
-                        </div>
-                        
-                        <!-- ✅ Fecha Bloqueo (EDITABLE) -->
-                        <div class="form-group">
-                            <label for="fechaBloqueo">Fecha Bloqueo</label>
-                            <input type="datetime-local" id="fechaBloqueo" name="fechaBloqueo"
-                                   value="${usuario.fechaBloqueo}">
-                            <small style="color: #7f8c8d; font-size: 0.85rem;">
-                                Editable - fecha y hora en que se bloqueó
-                            </small>
-                        </div>
-                        
-                        <!-- ✅ Fecha Modificación (EDITABLE) -->
-                        <div class="form-group">
-                            <label for="fechaModificacion">Fecha Modificación</label>
-                            <input type="datetime-local" id="fechaModificacion" name="fechaModificacion"
-                                   value="${usuario.fechaModificacion}">
-                            <small style="color: #7f8c8d; font-size: 0.85rem;">
-                                Editable - última fecha de modificación
-                            </small>
-                        </div>
                     </c:if>
                     
                     <!-- Botones de acción -->

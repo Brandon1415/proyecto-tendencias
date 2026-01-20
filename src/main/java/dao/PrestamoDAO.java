@@ -269,9 +269,17 @@ public class PrestamoDAO {
      * ✅ ACTUALIZAR PRESTAMO - EDITA LITERALMENTE TODO
      */
     public boolean actualizar(Prestamo prestamo) throws SQLException {
-        String sql = "UPDATE prestamos SET id_libro = ?, id_lector = ?, id_usuario = ?, " +
-                     "fecha_prestamo = ?, fecha_devolucion_esperada = ?, fecha_devolucion_real = ?, " +
-                     "estado = ?, observaciones = ?, fecha_modificacion = NOW() " +
+        String sql = "UPDATE prestamos SET " +
+                     "id_libro = ?, " +
+                     "id_lector = ?, " +
+                     "id_usuario = ?, " +
+                     "fecha_prestamo = ?, " +
+                     "fecha_devolucion_esperada = ?, " +
+                     "fecha_devolucion_real = ?, " +
+                     "estado = ?, " +
+                     "observaciones = ?, " +
+                     "fecha_registro = ?, " + // ✅ AGREGADO
+                     "fecha_modificacion = NOW() " +
                      "WHERE id_prestamo = ?";
 
         try (Connection conn = ConexionDB.getConnection();
@@ -282,16 +290,24 @@ public class PrestamoDAO {
             ps.setInt(3, prestamo.getIdUsuario());
             ps.setDate(4, prestamo.getFechaPrestamo());
             ps.setDate(5, prestamo.getFechaDevolucionEsperada());
-            
+
             if (prestamo.getFechaDevolucionReal() != null) {
                 ps.setDate(6, prestamo.getFechaDevolucionReal());
             } else {
                 ps.setNull(6, java.sql.Types.DATE);
             }
-            
+
             ps.setString(7, prestamo.getEstado());
             ps.setString(8, prestamo.getObservaciones());
-            ps.setInt(9, prestamo.getIdPrestamo());
+
+            // ✅ Preservar fecha_registro
+            if (prestamo.getFechaRegistro() != null) {
+                ps.setTimestamp(9, prestamo.getFechaRegistro());
+            } else {
+                ps.setTimestamp(9, new java.sql.Timestamp(System.currentTimeMillis()));
+            }
+
+            ps.setInt(10, prestamo.getIdPrestamo());
 
             int filasAfectadas = ps.executeUpdate();
             return filasAfectadas > 0;

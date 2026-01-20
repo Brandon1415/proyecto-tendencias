@@ -1,6 +1,7 @@
 dao\LibroDAO.class
 servlet\ControladorSistema.class
 model\Libro.class
+model\BloqueoIntento.class
 model\Prestamo.class
 dao\DashboardDAO.class
 model\Usuario.class
@@ -14,4 +15,5 @@ config\ConexionDB.class
 dao\LectorDAO.class
 dao\ReservaDAO.class
 model\BajaLibro.class
+model\BloqueoIntento$IntentosUsuario.class
 dao\PrestamoDAO.class

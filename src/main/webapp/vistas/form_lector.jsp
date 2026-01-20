@@ -1,10 +1,11 @@
 <%-- 
     Document   : form_lector
-    ✅ ACTUALIZADO: Permite editar fecha_registro (sin fecha_modificacion)
+    ✅ CORREGIDO: Preserva fecha_registro al editar
 --%>
 
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -29,6 +30,7 @@
                     <div class="info-box">
                         <h3>👥 Información del Lector</h3>
                         <p><strong>ID Lector:</strong> ${lector.idLector}</p>
+                        <p><strong>Fecha Registro:</strong> ${lector.fechaRegistro}</p>
                     </div>
                 </c:if>
                 
@@ -85,7 +87,7 @@
                         <div class="form-group">
                             <label for="fechaRegistro">Fecha Registro</label>
                             <input type="datetime-local" id="fechaRegistro" name="fechaRegistro"
-                                   value="${lector.fechaRegistro}">
+                                   value="<fmt:formatDate value='${lector.fechaRegistro}' pattern='yyyy-MM-dd\'T\'HH:mm'/>">
                             <small style="color: #7f8c8d; font-size: 0.85rem;">
                                 Editable - fecha y hora en que se registró el lector
                             </small>

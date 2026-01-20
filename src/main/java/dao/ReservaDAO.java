@@ -264,8 +264,9 @@ public class ReservaDAO {
     }
     
     /**
-     * ✅ ACTUALIZAR RESERVA - EDITA LITERALMENTE TODO
-     * Incluyendo fechas_registro y fecha_modificacion
+     * ✅ ACTUALIZAR RESERVA - Edita TODOS los campos de la tabla
+     * Incluye: id_libro, id_lector, fecha_reserva, fecha_expiracion, estado,
+     *          fecha_registro, fecha_modificacion
      */
     public boolean actualizar(Reserva reserva) throws SQLException {
         String sql = "UPDATE reservas SET " +
@@ -281,28 +282,46 @@ public class ReservaDAO {
         try (Connection conn = ConexionDB.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
+            // 1. Foreign Keys
             ps.setInt(1, reserva.getIdLibro());
             ps.setInt(2, reserva.getIdLector());
+
+            // 2. Fechas de negocio (date)
             ps.setDate(3, reserva.getFechaReserva());
             ps.setDate(4, reserva.getFechaExpiracion());
+
+            // 3. Estado (enum)
             ps.setString(5, reserva.getEstado());
-            
+
+            // 4. Timestamps del sistema
             if (reserva.getFechaRegistro() != null) {
                 ps.setTimestamp(6, reserva.getFechaRegistro());
             } else {
-                ps.setNull(6, java.sql.Types.TIMESTAMP);
+                ps.setTimestamp(6, new java.sql.Timestamp(System.currentTimeMillis()));
             }
-            
+
             if (reserva.getFechaModificacion() != null) {
                 ps.setTimestamp(7, reserva.getFechaModificacion());
             } else {
-                ps.setNull(7, java.sql.Types.TIMESTAMP);
+                ps.setTimestamp(7, new java.sql.Timestamp(System.currentTimeMillis()));
             }
-            
+
+            // 5. WHERE id_reserva
             ps.setInt(8, reserva.getIdReserva());
 
             int filasAfectadas = ps.executeUpdate();
+
+            // Log para debugging
+            System.out.println("Reserva actualizada: ID=" + reserva.getIdReserva() + 
+                             ", Estado=" + reserva.getEstado() + 
+                             ", Filas afectadas=" + filasAfectadas);
+
             return filasAfectadas > 0;
+
+        } catch (SQLException e) {
+            System.err.println("ERROR al actualizar reserva ID " + reserva.getIdReserva() + ": " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
     }
 

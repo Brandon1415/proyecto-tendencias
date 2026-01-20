@@ -1,10 +1,14 @@
 <%-- 
     Document   : form_baja
-    ✅ ACTUALIZADO: Permite editar LITERALMENTE TODO (motivo, descripcion, fechas)
+    ✅ ACTUALIZADO: Permite editar LITERALMENTE TODO
+    - id_libro (dropdown)
+    - id_usuario (dropdown)
+    - motivo, descripcion, fechas
 --%>
 
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -28,36 +32,69 @@
                     <input type="hidden" name="action" value="actualizarBaja">
                     <input type="hidden" name="id" value="${baja.idBaja}">
                     
-                    <!-- Información del Libro (solo lectura) -->
+                    <!-- ✅ Información del Libro (EDITABLE - DROPDOWN) -->
                     <div class="form-section">
                         <h3>📚 Información del Libro</h3>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Título:</label>
-                                <input type="text" value="${baja.tituloLibro}" readonly class="readonly-input">
-                            </div>
-                            <div class="form-group">
-                                <label>Autor:</label>
-                                <input type="text" value="${baja.autorLibro}" readonly class="readonly-input">
-                            </div>
+                        
+                        <!-- Libro (EDITABLE) -->
+                        <div class="form-group">
+                            <label for="libro">Libro <span class="required">*</span></label>
+                            <select id="libro" name="libro" required onchange="actualizarDatosLibro()">
+                                <option value="">-- Seleccione un libro --</option>
+                                <c:forEach var="libro" items="${libros}">
+                                    <option value="${libro.idLibro}" 
+                                            data-titulo="${libro.titulo}"
+                                            data-autor="${libro.autor}"
+                                            data-isbn="${libro.isbn}"
+                                            ${baja.idLibro == libro.idLibro ? 'selected' : ''}>
+                                        ${libro.idLibro} - ${libro.titulo}
+                                    </option>
+                                </c:forEach>
+                            </select>
                         </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>ISBN:</label>
-                                <input type="text" value="${baja.isbnLibro}" readonly class="readonly-input">
-                            </div>
-                            <div class="form-group">
-                                <label>Registrado Por:</label>
-                                <input type="text" value="${baja.nombreUsuario}" readonly class="readonly-input">
-                            </div>
+                        
+                        <!-- Título (lectura, se actualiza con JS) -->
+                        <div class="form-group">
+                            <label>Título:</label>
+                            <input type="text" id="titulo" readonly class="readonly-input">
+                        </div>
+                        
+                        <!-- Autor (lectura, se actualiza con JS) -->
+                        <div class="form-group">
+                            <label>Autor:</label>
+                            <input type="text" id="autor" readonly class="readonly-input">
+                        </div>
+                        
+                        <!-- ISBN (lectura, se actualiza con JS) -->
+                        <div class="form-group">
+                            <label>ISBN:</label>
+                            <input type="text" id="isbn" readonly class="readonly-input">
                         </div>
                     </div>
                     
-                    <!-- Información de la Baja (editable) -->
+                    <!-- ✅ Información del Usuario (EDITABLE - DROPDOWN) -->
+                    <div class="form-section">
+                        <h3>👤 Usuario que Registró</h3>
+                        
+                        <div class="form-group">
+                            <label for="usuario">Usuario <span class="required">*</span></label>
+                            <select id="usuario" name="usuario" required>
+                                <option value="">-- Seleccione un usuario --</option>
+                                <c:forEach var="usuario" items="${usuarios}">
+                                    <option value="${usuario.idUsuario}" 
+                                            ${baja.idUsuario == usuario.idUsuario ? 'selected' : ''}>
+                                        ${usuario.idUsuario} - ${usuario.nombreCompleto} (${usuario.rol})
+                                    </option>
+                                </c:forEach>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- ✅ Información de la Baja (EDITABLE) -->
                     <div class="form-section">
                         <h3>📋 Información de la Baja</h3>
                         
-                        <!-- ✅ Motivo (EDITABLE) -->
+                        <!-- Motivo (EDITABLE) -->
                         <div class="form-group">
                             <label for="motivo">Motivo <span class="required">*</span></label>
                             <select id="motivo" name="motivo" required>
@@ -69,14 +106,14 @@
                             </select>
                         </div>
                         
-                        <!-- ✅ Descripción (EDITABLE) -->
+                        <!-- Descripción (EDITABLE) -->
                         <div class="form-group">
                             <label for="descripcion">Descripción <span class="required">*</span></label>
                             <textarea id="descripcion" name="descripcion" rows="4" 
                                       required placeholder="Describa el motivo de la baja...">${baja.descripcion}</textarea>
                         </div>
                         
-                        <!-- ✅ Fecha de Baja (EDITABLE) -->
+                        <!-- Fecha de Baja (EDITABLE) -->
                         <div class="form-group">
                             <label for="fechaBaja">Fecha de Baja <span class="required">*</span></label>
                             <input type="date" id="fechaBaja" name="fechaBaja" 
@@ -86,21 +123,21 @@
                             </small>
                         </div>
                         
-                        <!-- ✅ Fecha Registro (EDITABLE) -->
+                        <!-- Fecha Registro (EDITABLE) -->
                         <div class="form-group">
                             <label for="fechaRegistro">Fecha Registro</label>
                             <input type="datetime-local" id="fechaRegistro" name="fechaRegistro"
-                                   value="${baja.fechaRegistro}">
+                                   value="<fmt:formatDate value='${baja.fechaRegistro}' pattern='yyyy-MM-dd\'T\'HH:mm'/>">
                             <small style="color: #7f8c8d; font-size: 0.85rem;">
                                 Editable - fecha y hora en que se registró la baja
                             </small>
                         </div>
                         
-                        <!-- ✅ Fecha Modificación (EDITABLE) -->
+                        <!-- Fecha Modificación (EDITABLE) -->
                         <div class="form-group">
                             <label for="fechaModificacion">Fecha Modificación</label>
                             <input type="datetime-local" id="fechaModificacion" name="fechaModificacion"
-                                   value="${baja.fechaModificacion}">
+                                   value="<fmt:formatDate value='${baja.fechaModificacion}' pattern='yyyy-MM-dd\'T\'HH:mm'/>">
                             <small style="color: #7f8c8d; font-size: 0.85rem;">
                                 Editable - última fecha de modificación
                             </small>
@@ -116,5 +153,22 @@
             </div>
         </main>
     </div>
+    
+    <!-- Script para actualizar datos del libro dinámicamente -->
+    <script>
+        function actualizarDatosLibro() {
+            const select = document.getElementById('libro');
+            const option = select.options[select.selectedIndex];
+            
+            document.getElementById('titulo').value = option.getAttribute('data-titulo') || '';
+            document.getElementById('autor').value = option.getAttribute('data-autor') || '';
+            document.getElementById('isbn').value = option.getAttribute('data-isbn') || '';
+        }
+        
+        // Ejecutar al cargar la página para mostrar los datos del libro actual
+        window.onload = function() {
+            actualizarDatosLibro();
+        }
+    </script>
 </body>
 </html>

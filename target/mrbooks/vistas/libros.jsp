@@ -1,6 +1,6 @@
 <%-- 
     Document   : libros
-    ✅ ACTUALIZADO: Muestra categoria como VARCHAR (no nombreCategoria)
+    ✅ ACTUALIZADO: Muestra null/-- cuando el libro está dado de baja en historial
 --%>
 
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
@@ -84,11 +84,35 @@
                                 </td>
                                 <td>${libro.editorial}</td>
                                 <td>${libro.anioPublicacion}</td>
-                                <td>${libro.copiasTotales}</td>
+                                <!-- Total: Mostrar null o -- si está en historial_bajas -->
                                 <td>
-                                    <span class="badge ${libro.copiasDisponibles > 0 ? 'badge-success' : 'badge-warning'}">
-                                        ${libro.copiasDisponibles}
-                                    </span>
+                                    <c:set var="estaEnHistorial" value="false"/>
+                                    <c:forEach var="baja" items="${bajas}">
+                                        <c:if test="${baja.id_libro == libro.idLibro}">
+                                            <c:set var="estaEnHistorial" value="true"/>
+                                        </c:if>
+                                    </c:forEach>
+                                    <c:choose>
+                                        <c:when test="${estaEnHistorial}">
+                                            --
+                                        </c:when>
+                                        <c:otherwise>
+                                            ${libro.copiasTotales}
+                                        </c:otherwise>
+                                    </c:choose>
+                                </td>
+                                <!-- Disponibles: Mostrar null o -- si está en historial_bajas -->
+                                <td>
+                                    <c:choose>
+                                        <c:when test="${estaEnHistorial}">
+                                            <span class="badge badge-secondary">--</span>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <span class="badge ${libro.copiasDisponibles > 0 ? 'badge-success' : 'badge-warning'}">
+                                                ${libro.copiasDisponibles}
+                                            </span>
+                                        </c:otherwise>
+                                    </c:choose>
                                 </td>
                                 <td>
                                     <span class="badge ${libro.activo ? 'badge-success' : 'badge-danger'}">
@@ -97,18 +121,25 @@
                                 </td>
                                 <td>${libro.fechaModificacion}</td>
                                 <td>
-                                    <span class="badge ${libro.estadoLibro == 'DISPONIBLE' ? 'badge-success' : 
-                                                         libro.estadoLibro == 'PRESTADO' ? 'badge-warning' : 'badge-danger'}">
-                                        ${libro.estadoLibro}
-                                    </span>
+                                    <c:choose>
+                                        <c:when test="${estaEnHistorial}">
+                                            <span class="badge badge-danger">BAJA</span>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <span class="badge ${libro.estadoLibro == 'DISPONIBLE' ? 'badge-success' : 
+                                                                 libro.estadoLibro == 'PRESTADO' ? 'badge-warning' : 'badge-danger'}">
+                                                ${libro.estadoLibro}
+                                            </span>
+                                        </c:otherwise>
+                                    </c:choose>
                                 </td>
                                 <td class="actions">
                                     <!-- Botón Editar -->
                                     <a href="ControladorSistema?action=editarLibro&id=${libro.idLibro}" 
                                        class="btn-icon btn-edit" title="Editar">✏️</a>
                                     
-                                    <!-- Botón Dar Baja (solo si está activo) -->
-                                    <c:if test="${libro.activo}">
+                                    <!-- Botón Dar Baja (solo si NO está en historial) -->
+                                    <c:if test="${!estaEnHistorial}">
                                         <a href="#" class="btn-icon btn-warning" title="Dar Baja"
                                            onclick="darBajaLibro(${libro.idLibro}); return false;">❌</a>
                                     </c:if>

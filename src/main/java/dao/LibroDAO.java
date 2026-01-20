@@ -1,6 +1,7 @@
 /*
  * DAO para gestionar operaciones de Libros
- * ✅ ACTUALIZADO: Sin tabla categorias, categoria es VARCHAR en libros
+ * ✅ ACTUALIZADO: Dar de baja registra en historial pero NO desactiva el libro
+ * El libro permanece en la tabla con activo = 1, solo se registra en historial_bajas
  */
 package dao;
 
@@ -15,10 +16,10 @@ import java.util.Map;
 public class LibroDAO {
     
     /**
-     * ✅ Listar todos los libros activos
+     * ✅ Listar todos los libros (activos e inactivos)
      */
     public List<Libro> listarTodos() throws SQLException {
-        String sql = "SELECT * FROM libros WHERE activo = 1 ORDER BY titulo";
+        String sql = "SELECT * FROM libros ORDER BY titulo";
         List<Libro> libros = new ArrayList<>();
         
         try (Connection conn = ConexionDB.getConnection();
@@ -99,27 +100,31 @@ public class LibroDAO {
     }
     
     /**
-     * Dar de baja un libro (desactivarlo) y registrar el motivo
+     * ✅ ACTUALIZADO: Dar de baja un libro
+     * - Registra en historial_bajas
+     * - DESACTIVA el libro (activo = 0)
+     * - El libro permanece en la tabla pero inactivo
      */
     public boolean registrarBaja(int idLibro, int idUsuario, String motivo, String descripcion) throws SQLException {
-        String sql = "INSERT INTO historial_bajas (id_libro, id_usuario, fecha_baja, motivo, descripcion) " +
-                     "VALUES (?, ?, CURDATE(), ?, ?)";
+        String sqlInsert = "INSERT INTO historial_bajas (id_libro, id_usuario, fecha_baja, motivo, descripcion) " +
+                           "VALUES (?, ?, CURDATE(), ?, ?)";
+        String sqlUpdate = "UPDATE libros SET activo = 0, fecha_modificacion = NOW() WHERE id_libro = ?";
         
-        try (Connection conn = ConexionDB.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            
+        try (Connection conn = ConexionDB.getConnection()) {
             conn.setAutoCommit(false);
             
             try {
-                ps.setInt(1, idLibro);
-                ps.setInt(2, idUsuario);
-                ps.setString(3, motivo);
-                ps.setString(4, descripcion);
+                // 1. Insertar en historial_bajas
+                try (PreparedStatement ps1 = conn.prepareStatement(sqlInsert)) {
+                    ps1.setInt(1, idLibro);
+                    ps1.setInt(2, idUsuario);
+                    ps1.setString(3, motivo);
+                    ps1.setString(4, descripcion);
+                    ps1.executeUpdate();
+                }
                 
-                ps.executeUpdate();
-                
-                String sqlDesactivar = "UPDATE libros SET activo = 0, fecha_modificacion = NOW() WHERE id_libro = ?";
-                try (PreparedStatement ps2 = conn.prepareStatement(sqlDesactivar)) {
+                // 2. Desactivar el libro
+                try (PreparedStatement ps2 = conn.prepareStatement(sqlUpdate)) {
                     ps2.setInt(1, idLibro);
                     ps2.executeUpdate();
                 }
@@ -285,10 +290,26 @@ public class LibroDAO {
     }
     
     /**
-     * Eliminar un libro permanentemente
+     * Eliminar un libro PERMANENTEMENTE de la BD
+     * Esto elimina el libro y también sus registros en historial_bajas (CASCADE)
      */
     public boolean eliminar(int idLibro) throws SQLException {
         String sql = "DELETE FROM libros WHERE id_libro = ?";
+        
+        try (Connection conn = ConexionDB.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            
+            ps.setInt(1, idLibro);
+            int filasAfectadas = ps.executeUpdate();
+            return filasAfectadas > 0;
+        }
+    }
+    
+    /**
+     * ✅ Reactivar un libro (usado cuando se elimina una baja)
+     */
+    public boolean reactivarLibro(int idLibro) throws SQLException {
+        String sql = "UPDATE libros SET activo = 1, fecha_modificacion = NOW() WHERE id_libro = ?";
         
         try (Connection conn = ConexionDB.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {

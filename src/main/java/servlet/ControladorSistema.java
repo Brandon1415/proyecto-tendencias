@@ -136,21 +136,66 @@ public class ControladorSistema extends HttpServlet {
         request.getRequestDispatcher(LOGIN).forward(request, response);
     }
     
-    private void autenticarUsuario(HttpServletRequest request, HttpServletResponse response)
+        private void autenticarUsuario(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, SQLException {
+
         String email = request.getParameter("email");
         String password = request.getParameter("password");
-        
+
+        // 1. Verificar si el usuario está bloqueado
+        BloqueoIntento bloqueoControl = BloqueoIntento.getInstance();
+
+        if (bloqueoControl.estaBloqueado(email)) {
+            int tiempoRestante = bloqueoControl.getTiempoRestanteBloqueo(email);
+            request.setAttribute("error", 
+                String.format("Cuenta bloqueada por 5 minutos. Tiempo restante: %d:%02d", 
+                    tiempoRestante / 60, tiempoRestante % 60));
+            request.setAttribute("email", email);
+            request.setAttribute("bloqueado", true);
+            request.setAttribute("tiempoRestante", tiempoRestante);
+            request.getRequestDispatcher(LOGIN).forward(request, response);
+            return;
+        }
+
+        // 2. Intentar autenticar
         Usuario usuario = usuarioDAO.autenticar(email, password);
+
         if (usuario != null) {
+            // 3. Login exitoso - resetear intentos
+            bloqueoControl.resetearIntentos(email);
+
+            // Configurar sesión
             HttpSession session = request.getSession();
             session.setAttribute("usuario", usuario);
             session.setAttribute("nombreUsuario", usuario.getNombreCompleto());
             session.setAttribute("rol", usuario.getRol());
             session.setAttribute("idUsuario", usuario.getIdUsuario());
+
             response.sendRedirect("ControladorSistema?action=dashboard");
         } else {
-            request.setAttribute("error", "Credenciales incorrectas o usuario inactivo.");
+            // 4. Login fallido - registrar intento
+            boolean bloqueadoAhora = bloqueoControl.registrarIntentoFallido(email);
+            int intentosRestantes = bloqueoControl.getIntentosRestantes(email);
+
+            if (bloqueadoAhora) {
+                // Acaba de ser bloqueado
+                request.setAttribute("error", 
+                    "Demasiados intentos fallidos. Tu cuenta ha sido bloqueada por 5 minutos.");
+                request.setAttribute("email", email);
+                request.setAttribute("bloqueado", true);
+                request.setAttribute("tiempoRestante", 300); // 5 minutos en segundos
+            } else {
+                // Aún tiene intentos
+                if (intentosRestantes > 0) {
+                    request.setAttribute("error", 
+                        String.format("Credenciales incorrectas. Intentos restantes: %d", 
+                            intentosRestantes));
+                    request.setAttribute("intentosRestantes", intentosRestantes);
+                }
+            }
+
+            // Mantener el email en el formulario
+            request.setAttribute("email", email);
             request.getRequestDispatcher(LOGIN).forward(request, response);
         }
     }
@@ -291,25 +336,44 @@ public class ControladorSistema extends HttpServlet {
     }
     
     private void guardarLector(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException, SQLException {
-        if (!validarSesion(request, response)) return;
-        String modo = request.getParameter("modo");
-        Lector lector = new Lector();
-        if ("editar".equals(modo)) {
-            lector.setIdLector(Integer.parseInt(request.getParameter("id")));
+                throws ServletException, IOException, SQLException {
+            if (!validarSesion(request, response)) return;
+
+            String modo = request.getParameter("modo");
+            Lector lector = new Lector();
+
+            if ("editar".equals(modo)) {
+                lector.setIdLector(Integer.parseInt(request.getParameter("id")));
+            }
+
+            lector.setNombre(request.getParameter("nombre"));
+            lector.setApellido(request.getParameter("apellido"));
+            lector.setCedula(request.getParameter("cedula"));
+            lector.setCorreo(request.getParameter("correo"));
+            lector.setTelefono(request.getParameter("telefono"));
+            lector.setDireccion(request.getParameter("direccion"));
+            lector.setEstado(request.getParameter("estado"));
+
+            // ✅ CAPTURAR Y PRESERVAR fecha_registro (solo en edición)
+            if ("editar".equals(modo)) {
+                String fechaRegistroStr = request.getParameter("fechaRegistro");
+                if (fechaRegistroStr != null && !fechaRegistroStr.isEmpty()) {
+                    // Formato: "2024-01-15T10:30" → "2024-01-15 10:30:00"
+                    String fechaRegistroSQL = fechaRegistroStr.replace("T", " ");
+                    lector.setFechaRegistro(java.sql.Timestamp.valueOf(fechaRegistroSQL + ":00"));
+                }
+            }
+
+            boolean exito = "nuevo".equals(modo) ? lectorDAO.insertar(lector) : lectorDAO.actualizar(lector);
+
+            if (exito) {
+                request.getSession().setAttribute("mensaje", "Lector guardado exitosamente");
+            } else {
+                request.getSession().setAttribute("error", "Error al guardar lector");
+            }
+
+            response.sendRedirect("ControladorSistema?action=listarLectores");
         }
-        lector.setNombre(request.getParameter("nombre"));
-        lector.setApellido(request.getParameter("apellido"));
-        lector.setCedula(request.getParameter("cedula"));
-        lector.setCorreo(request.getParameter("correo"));
-        lector.setTelefono(request.getParameter("telefono"));
-        lector.setDireccion(request.getParameter("direccion"));
-        lector.setEstado(request.getParameter("estado"));
-        boolean exito = "nuevo".equals(modo) ? lectorDAO.insertar(lector) : lectorDAO.actualizar(lector);
-        if (exito) request.getSession().setAttribute("mensaje", "Lector guardado exitosamente");
-        else request.getSession().setAttribute("error", "Error al guardar lector");
-        response.sendRedirect("ControladorSistema?action=listarLectores");
-    }
     
     private void eliminarLector(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, SQLException {
@@ -364,23 +428,44 @@ public class ControladorSistema extends HttpServlet {
     }
     
     private void guardarLibro(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException, SQLException {
-        if (!validarSesion(request, response)) return;
-        String modo = request.getParameter("modo");
-        Libro libro = new Libro();
-        if ("editar".equals(modo)) libro.setIdLibro(Integer.parseInt(request.getParameter("id")));
-        libro.setTitulo(request.getParameter("titulo"));
-        libro.setAutor(request.getParameter("autor"));
-        libro.setIsbn(request.getParameter("isbn"));
-        libro.setCategoria(request.getParameter("categoria"));
-        libro.setEditorial(request.getParameter("editorial"));
-        libro.setAnioPublicacion(Integer.parseInt(request.getParameter("anio")));
-        libro.setCopiasTotales(Integer.parseInt(request.getParameter("copias")));
-        boolean exito = "nuevo".equals(modo) ? libroDAO.insertar(libro) : libroDAO.actualizar(libro);
-        if (exito) request.getSession().setAttribute("mensaje", "Libro guardado exitosamente");
-        else request.getSession().setAttribute("error", "Error al guardar libro");
-        response.sendRedirect("ControladorSistema?action=listarLibros");
-    }
+                throws ServletException, IOException, SQLException {
+            if (!validarSesion(request, response)) return;
+
+            String modo = request.getParameter("modo");
+            Libro libro = new Libro();
+
+            if ("editar".equals(modo)) {
+                libro.setIdLibro(Integer.parseInt(request.getParameter("id")));
+            }
+
+            libro.setTitulo(request.getParameter("titulo"));
+            libro.setAutor(request.getParameter("autor"));
+            libro.setIsbn(request.getParameter("isbn"));
+            libro.setCategoria(request.getParameter("categoria"));
+            libro.setEditorial(request.getParameter("editorial"));
+            libro.setAnioPublicacion(Integer.parseInt(request.getParameter("anio")));
+            libro.setCopiasTotales(Integer.parseInt(request.getParameter("copias")));
+
+            // ✅ Capturar el estado "Activo" (solo en edición)
+            if ("editar".equals(modo)) {
+                String activoParam = request.getParameter("activo");
+                boolean activo = "true".equals(activoParam);
+                libro.setActivo(activo);
+            } else {
+                // En nuevo, siempre se crea como activo
+                libro.setActivo(true);
+            }
+
+            boolean exito = "nuevo".equals(modo) ? libroDAO.insertar(libro) : libroDAO.actualizar(libro);
+
+            if (exito) {
+                request.getSession().setAttribute("mensaje", "Libro guardado exitosamente");
+            } else {
+                request.getSession().setAttribute("error", "Error al guardar libro");
+            }
+
+            response.sendRedirect("ControladorSistema?action=listarLibros");
+        }
     
     private void darBajaLibro(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, SQLException {
@@ -470,14 +555,22 @@ public class ControladorSistema extends HttpServlet {
     private void mostrarFormularioEditarPrestamo(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, SQLException {
         if (!validarSesion(request, response)) return;
+
         int idPrestamo = Integer.parseInt(request.getParameter("id"));
         Prestamo prestamo = prestamoDAO.obtenerPorId(idPrestamo);
+
         if (prestamo != null) {
             List<Libro> libros = libroDAO.listarTodos();
             List<Lector> lectores = lectorDAO.listarTodos();
+            List<Usuario> usuarios = usuarioDAO.listarTodos(); // ✅ AGREGADO
+
             request.setAttribute("prestamo", prestamo);
             request.setAttribute("libros", libros);
             request.setAttribute("lectores", lectores);
+
+            // ✅ Guardar usuarios en sesión para que estén disponibles en el JSP
+            request.getSession().setAttribute("usuarios", usuarios);
+
             request.getRequestDispatcher("vistas/form_prestamo_edit.jsp").forward(request, response);
         } else {
             request.getSession().setAttribute("error", "Préstamo no encontrado");
@@ -489,24 +582,74 @@ public class ControladorSistema extends HttpServlet {
             throws ServletException, IOException, SQLException {
         if (!validarSesion(request, response)) return;
         try {
+            // ✅ Obtener parámetros con validación
             int idPrestamo = Integer.parseInt(request.getParameter("id"));
-            int idLibro = Integer.parseInt(request.getParameter("libro"));
-            int idLector = Integer.parseInt(request.getParameter("lector"));
+
+            String libroParam = request.getParameter("libro");
+            String lectorParam = request.getParameter("lector");
+            String usuarioParam = request.getParameter("usuario");
+
+            // Validar que los parámetros no estén vacíos
+            if (libroParam == null || libroParam.isEmpty() ||
+                lectorParam == null || lectorParam.isEmpty() ||
+                usuarioParam == null || usuarioParam.isEmpty()) {
+                request.getSession().setAttribute("error", "Error: Faltan datos obligatorios");
+                response.sendRedirect("ControladorSistema?action=listarPrestamos");
+                return;
+            }
+
+            int idLibro = Integer.parseInt(libroParam);
+            int idLector = Integer.parseInt(lectorParam);
+            int idUsuario = Integer.parseInt(usuarioParam);
+
             String fechaPrestamoStr = request.getParameter("fechaPrestamo");
-            String fechaDevolucionStr = request.getParameter("fechaDevolucionEsperada");
+            String fechaDevolucionEsperadaStr = request.getParameter("fechaDevolucionEsperada");
+            String fechaDevolucionRealStr = request.getParameter("fechaDevolucionReal");
+            String estado = request.getParameter("estado");
             String observaciones = request.getParameter("observaciones");
+            String fechaRegistroStr = request.getParameter("fechaRegistro");
+
+            // Crear objeto Prestamo
             Prestamo prestamo = new Prestamo();
             prestamo.setIdPrestamo(idPrestamo);
             prestamo.setIdLibro(idLibro);
             prestamo.setIdLector(idLector);
+            prestamo.setIdUsuario(idUsuario);
             prestamo.setFechaPrestamo(java.sql.Date.valueOf(fechaPrestamoStr));
-            prestamo.setFechaDevolucionEsperada(java.sql.Date.valueOf(fechaDevolucionStr));
+            prestamo.setFechaDevolucionEsperada(java.sql.Date.valueOf(fechaDevolucionEsperadaStr));
+
+            // ✅ Manejar fecha de devolución real (puede ser null)
+            if (fechaDevolucionRealStr != null && !fechaDevolucionRealStr.isEmpty()) {
+                prestamo.setFechaDevolucionReal(java.sql.Date.valueOf(fechaDevolucionRealStr));
+            } else {
+                prestamo.setFechaDevolucionReal(null);
+            }
+
+            prestamo.setEstado(estado);
             prestamo.setObservaciones(observaciones);
+
+            // ✅ Preservar fecha_registro (solo en edición)
+            if (fechaRegistroStr != null && !fechaRegistroStr.isEmpty()) {
+                String fechaRegistroSQL = fechaRegistroStr.replace("T", " ");
+                prestamo.setFechaRegistro(java.sql.Timestamp.valueOf(fechaRegistroSQL + ":00"));
+            }
+
             boolean exito = prestamoDAO.actualizar(prestamo);
-            if (exito) request.getSession().setAttribute("mensaje", "Préstamo actualizado exitosamente");
-            else request.getSession().setAttribute("error", "Error al actualizar préstamo");
+
+            if (exito) {
+                request.getSession().setAttribute("mensaje", "Préstamo actualizado exitosamente");
+            } else {
+                request.getSession().setAttribute("error", "Error al actualizar préstamo");
+            }
+        } catch (NumberFormatException e) {
+            request.getSession().setAttribute("error", "Error: Formato de número inválido - " + e.getMessage());
+            e.printStackTrace();
+        } catch (IllegalArgumentException e) {
+            request.getSession().setAttribute("error", "Error: Fecha inválida. Usa formato YYYY-MM-DD");
+            e.printStackTrace();
         } catch (Exception e) {
             request.getSession().setAttribute("error", "Error al actualizar: " + e.getMessage());
+            e.printStackTrace();
         }
         response.sendRedirect("ControladorSistema?action=listarPrestamos");
     }
@@ -668,36 +811,103 @@ public class ControladorSistema extends HttpServlet {
     private void actualizarReserva(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, SQLException {
         if (!validarSesion(request, response)) return;
+
         try {
+            // ============================================
+            // CAPTURAR TODOS LOS PARÁMETROS
+            // ============================================
+
+            // ID de la reserva
             int idReserva = Integer.parseInt(request.getParameter("id"));
+
+            // Relaciones (Foreign Keys)
             int idLibro = Integer.parseInt(request.getParameter("libro"));
             int idLector = Integer.parseInt(request.getParameter("lector"));
+
+            // Fechas de negocio
             String fechaReservaStr = request.getParameter("fechaReserva");
             String fechaExpiracionStr = request.getParameter("fechaExpiracion");
+
+            // Estado
             String estado = request.getParameter("estado");
-            
+
+            // Timestamps del sistema
+            String fechaRegistroStr = request.getParameter("fechaRegistro");
+            String fechaModificacionStr = request.getParameter("fechaModificacion");
+
+            // ============================================
+            // VALIDACIONES BÁSICAS
+            // ============================================
+            if (estado == null || estado.trim().isEmpty()) {
+                request.getSession().setAttribute("error", "Error: El estado es obligatorio");
+                response.sendRedirect("ControladorSistema?action=listarReservas");
+                return;
+            }
+
+            // ============================================
+            // CREAR Y POBLAR OBJETO RESERVA
+            // ============================================
             Reserva reserva = new Reserva();
+
+            // Campos básicos
             reserva.setIdReserva(idReserva);
             reserva.setIdLibro(idLibro);
             reserva.setIdLector(idLector);
+            reserva.setEstado(estado);
+
+            // Fechas de negocio (date)
             reserva.setFechaReserva(java.sql.Date.valueOf(fechaReservaStr));
             reserva.setFechaExpiracion(java.sql.Date.valueOf(fechaExpiracionStr));
-            reserva.setEstado(estado);
-            
-            boolean exito = reservaDAO.actualizar(reserva);
-            if (exito) {
-                request.getSession().setAttribute("mensaje", "Reserva actualizada exitosamente");
+
+            // Timestamps del sistema (timestamp)
+            // Formato de entrada: "2024-01-15T10:30" → Convertir a "2024-01-15 10:30:00"
+            if (fechaRegistroStr != null && !fechaRegistroStr.isEmpty()) {
+                String fechaRegistroSQL = fechaRegistroStr.replace("T", " ") + ":00";
+                reserva.setFechaRegistro(java.sql.Timestamp.valueOf(fechaRegistroSQL));
             } else {
-                request.getSession().setAttribute("error", "Error al actualizar reserva");
+                // Si no se proporciona, usar la fecha actual
+                reserva.setFechaRegistro(new java.sql.Timestamp(System.currentTimeMillis()));
             }
+
+            if (fechaModificacionStr != null && !fechaModificacionStr.isEmpty()) {
+                String fechaModificacionSQL = fechaModificacionStr.replace("T", " ") + ":00";
+                reserva.setFechaModificacion(java.sql.Timestamp.valueOf(fechaModificacionSQL));
+            } else {
+                // Si no se proporciona, usar la fecha actual
+                reserva.setFechaModificacion(new java.sql.Timestamp(System.currentTimeMillis()));
+            }
+
+            // ============================================
+            // EJECUTAR ACTUALIZACIÓN
+            // ============================================
+            boolean exito = reservaDAO.actualizar(reserva);
+
+            if (exito) {
+                request.getSession().setAttribute("mensaje", 
+                    "Reserva #" + idReserva + " actualizada exitosamente");
+            } else {
+                request.getSession().setAttribute("error", 
+                    "❌ Error al actualizar la reserva en la base de datos");
+            }
+
         } catch (NumberFormatException e) {
-            request.getSession().setAttribute("error", "Error: ID inválido - " + e.getMessage());
+            request.getSession().setAttribute("error", 
+                "Error: Formato de número inválido - " + e.getMessage());
+            e.printStackTrace();
         } catch (IllegalArgumentException e) {
-            request.getSession().setAttribute("error", "Error: Fecha inválida. Usa formato YYYY-MM-DD");
+            request.getSession().setAttribute("error", 
+                "Error: Formato de fecha inválido. Usa formato YYYY-MM-DD o YYYY-MM-DDTHH:MM");
+            e.printStackTrace();
+        } catch (SQLException e) {
+            request.getSession().setAttribute("error", 
+                "Error de base de datos: " + e.getMessage());
+            e.printStackTrace();
         } catch (Exception e) {
-            request.getSession().setAttribute("error", "Error al actualizar: " + e.getMessage());
+            request.getSession().setAttribute("error", 
+                "Error inesperado al actualizar: " + e.getMessage());
             e.printStackTrace();
         }
+
         response.sendRedirect("ControladorSistema?action=listarReservas");
     }
     
@@ -734,42 +944,84 @@ public class ControladorSistema extends HttpServlet {
     }
     
     private void mostrarFormularioEditarBaja(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException, SQLException {
-        if (!validarSesion(request, response)) return;
-        if (!esAdministrador(request, response)) return;
-        int idBaja = Integer.parseInt(request.getParameter("id"));
-        BajaLibro baja = bajaLibroDAO.obtenerPorId(idBaja);
-        if (baja != null) {
-            request.setAttribute("baja", baja);
-            request.getRequestDispatcher("vistas/form_baja.jsp").forward(request, response);
-        } else {
-            request.getSession().setAttribute("error", "Registro de baja no encontrado");
+                throws ServletException, IOException, SQLException {
+            if (!validarSesion(request, response)) return;
+            if (!esAdministrador(request, response)) return;
+
+            int idBaja = Integer.parseInt(request.getParameter("id"));
+            BajaLibro baja = bajaLibroDAO.obtenerPorId(idBaja);
+
+            if (baja != null) {
+                // ✅ Cargar listas de Libros y Usuarios para los dropdowns
+                List<Libro> libros = libroDAO.listarTodos();
+                List<Usuario> usuarios = usuarioDAO.listarTodos();
+
+                request.setAttribute("baja", baja);
+                request.setAttribute("libros", libros);
+                request.setAttribute("usuarios", usuarios);
+                request.getRequestDispatcher("vistas/form_baja.jsp").forward(request, response);
+            } else {
+                request.getSession().setAttribute("error", "Registro de baja no encontrado");
+                response.sendRedirect("ControladorSistema?action=verHistorialBajas");
+            }
+        }
+
+        private void actualizarBaja(HttpServletRequest request, HttpServletResponse response)
+                throws ServletException, IOException, SQLException {
+            if (!validarSesion(request, response)) return;
+            if (!esAdministrador(request, response)) return;
+
+            try {
+                int idBaja = Integer.parseInt(request.getParameter("id"));
+                int idLibro = Integer.parseInt(request.getParameter("libro"));
+                int idUsuario = Integer.parseInt(request.getParameter("usuario"));
+                String motivo = request.getParameter("motivo");
+                String descripcion = request.getParameter("descripcion");
+                String fechaBajaStr = request.getParameter("fechaBaja");
+                String fechaRegistroStr = request.getParameter("fechaRegistro");
+                String fechaModificacionStr = request.getParameter("fechaModificacion");
+
+                BajaLibro baja = new BajaLibro();
+                baja.setIdBaja(idBaja);
+                baja.setIdLibro(idLibro);
+                baja.setIdUsuario(idUsuario);
+                baja.setMotivo(motivo);
+                baja.setDescripcion(descripcion);
+
+                // Convertir fecha (date) a java.sql.Date
+                baja.setFechaBaja(java.sql.Date.valueOf(fechaBajaStr));
+
+                // Convertir datetime-local a java.sql.Timestamp
+                if (fechaRegistroStr != null && !fechaRegistroStr.isEmpty()) {
+                    // Formato: "2024-01-15T10:30" → "2024-01-15 10:30:00"
+                    String fechaRegistroSQL = fechaRegistroStr.replace("T", " ");
+                    baja.setFechaRegistro(java.sql.Timestamp.valueOf(fechaRegistroSQL + ":00"));
+                }
+
+                if (fechaModificacionStr != null && !fechaModificacionStr.isEmpty()) {
+                    // Formato: "2024-01-15T10:30" → "2024-01-15 10:30:00"
+                    String fechaModificacionSQL = fechaModificacionStr.replace("T", " ");
+                    baja.setFechaModificacion(java.sql.Timestamp.valueOf(fechaModificacionSQL + ":00"));
+                }
+
+                boolean exito = bajaLibroDAO.actualizar(baja);
+
+                if (exito) {
+                    request.getSession().setAttribute("mensaje", "Registro de baja actualizado exitosamente");
+                } else {
+                    request.getSession().setAttribute("error", "Error al actualizar registro de baja");
+                }
+            } catch (NumberFormatException e) {
+                request.getSession().setAttribute("error", "Error: ID inválido - " + e.getMessage());
+            } catch (IllegalArgumentException e) {
+                request.getSession().setAttribute("error", "Error: Fecha inválida. Usa formato correcto");
+            } catch (Exception e) {
+                request.getSession().setAttribute("error", "Error al actualizar: " + e.getMessage());
+                e.printStackTrace();
+            }
+
             response.sendRedirect("ControladorSistema?action=verHistorialBajas");
         }
-    }
-    
-    private void actualizarBaja(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException, SQLException {
-        if (!validarSesion(request, response)) return;
-        if (!esAdministrador(request, response)) return;
-        try {
-            int idBaja = Integer.parseInt(request.getParameter("id"));
-            String motivo = request.getParameter("motivo");
-            String descripcion = request.getParameter("descripcion");
-            String fechaBajaStr = request.getParameter("fechaBaja");
-            BajaLibro baja = new BajaLibro();
-            baja.setIdBaja(idBaja);
-            baja.setMotivo(motivo);
-            baja.setDescripcion(descripcion);
-            baja.setFechaBaja(java.sql.Date.valueOf(fechaBajaStr));
-            boolean exito = bajaLibroDAO.actualizar(baja);
-            if (exito) request.getSession().setAttribute("mensaje", "Registro de baja actualizado exitosamente");
-            else request.getSession().setAttribute("error", "Error al actualizar registro de baja");
-        } catch (Exception e) {
-            request.getSession().setAttribute("error", "Error al actualizar: " + e.getMessage());
-        }
-        response.sendRedirect("ControladorSistema?action=verHistorialBajas");
-    }
     
     private void eliminarBaja(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, SQLException {
@@ -785,7 +1037,7 @@ public class ControladorSistema extends HttpServlet {
         }
         response.sendRedirect("ControladorSistema?action=verHistorialBajas");
     }
-    
+       
     // ============================================
     // MÉTODOS DE UTILIDAD
     // ============================================

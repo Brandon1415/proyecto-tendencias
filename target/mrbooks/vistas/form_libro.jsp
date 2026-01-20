@@ -1,7 +1,7 @@
 <%-- 
     Document   : form_libro
     Formulario para crear y editar libros
-    ✅ ACTUALIZADO: categoria es VARCHAR (texto), no id_categoria
+    ✅ ACTUALIZADO: Ahora permite editar "Activo" en la edición
 --%>
 
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
@@ -63,7 +63,7 @@
                                value="${libro.isbn}" required maxlength="20">
                     </div>
                     
-                    <!-- ✅ Categoría (AHORA ES TEXTO, NO DROPDOWN) -->
+                    <!-- Categoría (TEXTO, NO DROPDOWN) -->
                     <div class="form-group">
                         <label for="categoria">Categoría <span class="required">*</span></label>
                         <input type="text" id="categoria" name="categoria" 
@@ -99,31 +99,18 @@
                             Número total de copias del libro
                         </small>
                     </div>
-                    
-                    <!-- Copias Disponibles (SOLO LECTURA EN EDICIÓN) -->
+                                       
+                    <!-- ✅ ACTIVO (EDITABLE SOLO EN EDICIÓN) -->
                     <c:if test="${modo == 'editar'}">
                         <div class="form-group">
-                            <label for="copiasDisponibles">Copias Disponibles</label>
-                            <input type="number" id="copiasDisponibles" 
-                                   value="${libro.copiasDisponibles}" 
-                                   readonly 
-                                   style="background-color: #f0f0f0; cursor: not-allowed;">
+                            <label for="activo">Estado <span class="required">*</span></label>
+                            <select id="activo" name="activo" required>
+                                <option value="">-- Seleccione --</option>
+                                <option value="true" ${libro.activo ? 'selected' : ''}>✅ ACTIVO</option>
+                                <option value="false" ${!libro.activo ? 'selected' : ''}>❌ INACTIVO</option>
+                            </select>
                             <small style="color: #7f8c8d; font-size: 0.85rem;">
-                                Este valor se calcula automáticamente basado en los préstamos
-                            </small>
-                        </div>
-                    </c:if>
-                    
-                    <!-- Activo (SOLO LECTURA) -->
-                    <c:if test="${modo == 'editar'}">
-                        <div class="form-group">
-                            <label for="activo">Estado</label>
-                            <input type="text" id="activo" 
-                                   value="${libro.activo ? 'ACTIVO' : 'INACTIVO'}" 
-                                   readonly 
-                                   style="background-color: #f0f0f0; cursor: not-allowed;">
-                            <small style="color: #7f8c8d; font-size: 0.85rem;">
-                                Usa "Dar de Baja" en la lista para desactivar
+                                Cambia el estado del libro (sin afectar el historial de bajas)
                             </small>
                         </div>
                     </c:if>
